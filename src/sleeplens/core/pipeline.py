@@ -132,6 +132,7 @@ def run_render(
                 topic=settings.script_topic,
                 target_word_count=settings.target_word_count,
                 language=settings.language,
+                system_prompt=settings.system_prompt or None,
             )
         finally:
             connector.close()

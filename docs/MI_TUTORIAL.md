@@ -65,13 +65,13 @@ Ajustes que importan:
 | ------- | ----- | ----------------- | ------- |
 | **Topic** | Pause between paragraphs | `1.8` s | Pausa cómoda para absorber |
 | **Topic** | Language | `en` | English |
-| **Audio** | TTS Voice | `en-US-AriaNeural` (ver sección "Voces en inglés" abajo) | Warm, conversational, top pick para sleep |
+| **Audio** | Voice (dropdown) | `Aria — warm, conversational female [top pick]` | El dropdown ya tiene 46 voces curadas |
 | **Audio** | TTS Rate | `-10%` | Más lento = más calmado |
 | **Audio** | TTS Pitch | `-2Hz` | Un poco más grave |
 | **Audio** | Ambient bed mode | `auto` | Matchea por keyword (rain, ocean, lofi, etc.) |
 | **Audio** | Bed volume | `0.18` | Ambiente presente pero no tapa la voz |
 | **Audio** | Duck amount | `12` dB | Voz clarísima, ambient baja cuando hablás |
-| **Render** | Output preset | `sleep_720p` | Suficiente para YouTube y podcast |
+| **Render** | Output preset | `sleep_720p` (o `sleep_1080p` para Full HD) | Suficiente para YouTube y podcast |
 | **Render** | Encoder | `auto` | NVENC si tenés NVIDIA, si no libx264 |
 
 Lo demás lo dejás como está. Si no querés tocar nada, los defaults
@@ -134,7 +134,8 @@ cuánto tardó:
 
 | Si querés... | Andá a | Tocá |
 | ------------- | ------ | ---- |
-| Voz diferente | Audio tab | Cambiá el campo **Voice** (ver lista abajo) |
+| Voz diferente | Audio tab | Cambiá el dropdown **Voice** (46 curadas, todas en español, inglés, etc.) |
+| Voz custom (no está en el dropdown) | Audio tab | Elegí **Custom...** en el dropdown, escribí el id en el campo de al lado |
 | Otro ambient (lluvia → océano) | Audio tab | Cambiá el campo **Ambient bed mode** a `keyword` o `random` |
 | Sin ambient (solo voz) | Audio tab | **Ambient bed mode** = `disabled` |
 | Más pausas | Topic tab | Subí **Pause between paragraphs** a `2.5` o `3` |
@@ -142,86 +143,102 @@ cuánto tardó:
 | Fondo con imagen/video | Visuals tab | Pegá la ruta o arrastrá el archivo |
 | Resolución 1080p | Render tab | **Output preset** = `sleep_1080p` |
 | Solo audio MP3 | Render tab | **Output preset** = `audio_only` |
+| Cambiar el modelo de IA | Provider tab | Dropdown **Model** (curado por provider); o **Custom...** para escribir uno |
+| Editar el system prompt | Provider tab | Click **Show advanced**, editá el textbox. Si lo dejás vacío, usa el default |
 
 ---
 
-## Voces en inglés (curadas para sleep)
+## Voces en el dropdown (curadas para sleep)
 
-Edge TTS tiene cientos de voces. Acá está la lista curada de las
-17 que mejor suenan para contenido de sleep-learning en inglés.
-Todas son gratis, sin key, sin quota.
+El dropdown **Voice** de la pestaña Audio tiene 46 voces curadas
+de Edge TTS, organizadas por idioma:
 
-### Cómo elegir
+| Idioma | Cantidad | Top picks |
+| ------ | -------- | --------- |
+| English (US) | 8 | **Aria** (mujer, cálida), **Brian** (hombre, profunda) |
+| English (UK) | 4 | **Ryan** (hombre, audiobook) |
+| English (AU / CA / IN / IE) | 5 | Natasha, William, Clara, Neerja, Emily |
+| Spanish (ES / MX / AR) | 5 | Elvira, Laura, Dalia, Jorge, Elena |
+| French (FR / CA) | 3 | Denise, Henri, Sylvie |
+| German | 2 | Katja, Conrad |
+| Italian | 3 | Elsa, Diego, Isabella |
+| Portuguese (BR / PT) | 3 | Francisca, Antonio, Raquel |
+| Japanese | 2 | Nanami, Keita |
+| Chinese (CN / HK / TW) | 4 | Xiaoxiao, Yunyang, HiuMaan, HsiaoChen |
+| Other | 7 | Korean, Dutch, Polish, Russian, Turkish, etc. |
+
+Si querés una voz que no esté en la lista, elegí **Custom...** en
+el dropdown y escribí el id en el campo de al lado (ej.
+`en-US-MichelleNeural`).
+
+### Cómo elegir la mejor voz para tu video
 
 Ya tenés 17 muestras de audio (10-17 segundos cada una) en
 `output/voice-previews/`. Abrí esa carpeta en el explorador y
-reproducí los MP3 hasta dar con la que más te guste. Después
-poné el id exacto (ej. `en-US-AriaNeural`) en el campo **Voice**
-de la pestaña Audio.
+reproducí los MP3 hasta dar con la que más te guste. El id exacto
+que aparece en el nombre del archivo lo buscás en el dropdown.
 
-Si querés regenerarlas o probar una voz nueva:
+Si querés regenerarlas o probar más:
 
 ```powershell
 # Regenerar todas
 uv run python scripts/voice_preview.py
 
 # Probar una sola voz
-uv run python scripts/voice_preview.py --voice en-US-AriaNeural
+uv run python scripts/voice_preview.py --voice en-US-BrianNeural
 
 # Probar con tu propio texto
-uv run python scripts/voice_preview.py --text "This is a test of how this voice sounds for sleep content."
+uv run python scripts/voice_preview.py --text "The story of jazz, told slowly and calmly."
 ```
 
-### Las 17 voces (verificadas funcionando)
+### Ajustes finos por voz (top picks)
 
-**Mujeres, US English (5):**
-| Voice | Vibe | Cuándo usarla |
-| ----- | ---- | ------------- |
-| `en-US-AriaNeural` | Cálida, conversacional | **Top pick**. La más natural para narración sleep |
-| `en-US-EmmaNeural` | Suave, ligeramente susurrada | Voiceover tipo meditación guiada |
-| `en-US-JennyNeural` | Amigable, clara, algo enérgica | Cuando el tema requiere más vitalidad |
-| `en-US-MichelleNeural` | Joven, brillante | Audiolibros juveniles, contenido moderno |
-| `en-US-RogerNeural` | (hombre) Mayor, digno | Narración histórica, biografías |
-
-**Hombres, US English (5):**
-| Voice | Vibe | Cuándo usarla |
-| ----- | ---- | ------------- |
-| `en-US-GuyNeural` | Casual, cálido | Narración relajada, podcasts |
-| `en-US-AndrewNeural` | Maduro, audiobook-style | Cursos largos, explicaciones densas |
-| `en-US-BrianNeural` | Profunda, resonante | **Top pick masculino**. Voz de late-night radio |
-| `en-US-RogerNeural` | (ya arriba) | |
-| `en-US-AndrewNeural` | (ya arriba) | |
-
-**Mujeres y hombres, UK English (4):**
-| Voice | Vibe | Cuándo usarla |
-| ----- | ---- | ------------- |
-| `en-GB-SoniaNeural` | Británica madura, pulida | Contenido refinado, literatura inglesa |
-| `en-GB-RyanNeural` | Británico cálido, audiobook | Temas históricos, biografías |
-| `en-GB-LibbyNeural` | Británica joven | Temas modernos, lifestyle |
-| `en-GB-ThomasNeural` | Británico maduro, profundo | Historia militar, exploración |
-
-**Otros acentos (3):**
-| Voice | Vibe | Cuándo usarla |
-| ----- | ---- | ------------- |
-| `en-AU-NatashaNeural` | Australiana calmada | Temas del hemisferio sur, naturaleza |
-| `en-AU-WilliamNeural` | Australiano maduro | Outback, expediciones |
-| `en-CA-ClaraNeural` | Canadiense calmada | Neutral, contenido general |
-| `en-IN-NeerjaNeural` | India suave | Yoga, meditación, hinduismo/budismo |
-| `en-IE-EmilyNeural` | Irlandesa suave | Folklore, leyendas, poesía |
-
-### Ajustes finos por voz
-
-Todas estas muestras están grabadas con **rate `-10%`** y **pitch `-2Hz`**.
+Todas las muestras están grabadas con **rate `-10%`** y **pitch `-2Hz`**.
 Si querés afinar más:
 
-| Voice | Rate sugerido | Pitch sugerido | Por qué |
-| ----- | ------------- | -------------- | ------- |
-| `en-US-AriaNeural` | `-10%` | `-2Hz` | Default, ya cálido |
+| Voice | Rate | Pitch | Por qué |
+| ----- | ---- | ----- | ------- |
+| `en-US-AriaNeural` | `-10%` | `-2Hz` | Default cálido |
 | `en-US-BrianNeural` | `-8%` | `-3Hz` | Ya es grave, no exagerar |
 | `en-US-EmmaNeural` | `-15%` | `0Hz` | Ya es susurrada, no pitch down |
 | `en-US-AndrewNeural` | `-12%` | `-2Hz` | Audiobook pace |
 | `en-GB-RyanNeural` | `-10%` | `-2Hz` | Default |
-| `en-GB-SoniaNeural` | `-8%` | `-1Hz` | Ya es muy pulida, no bajar mucho |
+
+---
+
+## Modelos de IA (Provider tab)
+
+El dropdown **Model** muestra los modelos más comunes para el
+proveedor seleccionado. Cambia solo cuando cambiás de provider.
+
+| Provider | Modelos curados |
+| -------- | --------------- |
+| NVIDIA NIM (default) | DeepSeek V4, DeepSeek R1, Llama 3.1 70B, Llama 3.1 8B, Mistral Large 2, Qwen 2.5 72B |
+| OpenAI | GPT-4o mini, GPT-4o, GPT-4.1 mini, GPT-4.1, o1-mini, o1-preview |
+| Anthropic (via proxy) | Claude Sonnet 4.5, Claude Opus 4, Claude Haiku 4 |
+| Ollama (local) | Llama 3.1, Llama 3.2, Mistral, Qwen 2.5, Phi-3 |
+| LM Studio (local) | local-model |
+| Custom | lo que vos pongas |
+
+Si querés un modelo que no está, elegí **Custom...** y escribí
+el id en el campo de al lado. Click **Load model list from
+provider** para que el provider te devuelva su lista actual y se
+fusione con la curada.
+
+---
+
+## System prompt (avanzado)
+
+Por default la IA escribe con un tono calmado, en segunda persona,
+con pausas entre párrafos. Si querés cambiar el tono (más formal,
+más corto, más poético, en otro estilo):
+
+1. Pestaña **Provider**
+2. Click **Show advanced (system prompt)**
+3. Editá el textbox con tus instrucciones
+
+Si lo dejás vacío, usa el default. Si lo llenás, sobreescribe el
+default para esa sesión (se guarda en `.sleeplens.toml`).
 
 ---
 

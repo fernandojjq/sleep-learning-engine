@@ -93,12 +93,19 @@ class ScriptWriter:
         target_word_count: int = 4500,
         language: str = "en",
         feedback: str | None = None,
+        system_prompt: str | None = None,
     ) -> Script:
-        """Generate a fresh script for the given topic."""
+        """Generate a fresh script for the given topic.
+
+        If ``system_prompt`` is provided, it replaces the built-in default
+        for this single call. Pass an empty string to fall back to the
+        built-in ``SYSTEM_PROMPT``.
+        """
         if not topic.strip():
             raise ConfigError("Topic cannot be empty.")
+        prompt = (system_prompt.strip() if system_prompt else "") or SYSTEM_PROMPT
         messages: list[ChatMessage] = [
-            ChatMessage("system", SYSTEM_PROMPT),
+            ChatMessage("system", prompt),
             ChatMessage(
                 "user",
                 USER_TEMPLATE.format(

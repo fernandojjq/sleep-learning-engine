@@ -45,6 +45,165 @@ PALETTE = {
 }
 
 
+# ---------------------------------------------------------- voice catalog
+
+# Curated Edge TTS voices, grouped by language. Each entry is
+# (voice_id, human_label). The dropdown uses the human label and
+# stores the voice id back into the settings.
+VOICE_CATALOG: dict[str, list[tuple[str, str]]] = {
+    "English (US)": [
+        ("en-US-AriaNeural", "Aria — warm, conversational female [top pick]"),
+        ("en-US-BrianNeural", "Brian — deep, resonant male [top pick]"),
+        ("en-US-EmmaNeural", "Emma — soft, breathy female"),
+        ("en-US-GuyNeural", "Guy — casual, warm male"),
+        ("en-US-JennyNeural", "Jenny — friendly, clear female"),
+        ("en-US-AndrewNeural", "Andrew — mature, audiobook male"),
+        ("en-US-MichelleNeural", "Michelle — young, bright female"),
+        ("en-US-RogerNeural", "Roger — older, dignified male"),
+    ],
+    "English (UK)": [
+        ("en-GB-SoniaNeural", "Sonia — mature British female"),
+        ("en-GB-RyanNeural", "Ryan — warm British male [top pick]"),
+        ("en-GB-LibbyNeural", "Libby — young British female"),
+        ("en-GB-ThomasNeural", "Thomas — deep British male"),
+    ],
+    "English (AU / CA / IN / IE)": [
+        ("en-AU-NatashaNeural", "Natasha — calm Australian female"),
+        ("en-AU-WilliamNeural", "William — mature Australian male"),
+        ("en-CA-ClaraNeural", "Clara — calm Canadian female"),
+        ("en-IN-NeerjaNeural", "Neerja — soft Indian-accent female"),
+        ("en-IE-EmilyNeural", "Emily — soft Irish-accent female"),
+    ],
+    "Spanish (ES / MX / AR)": [
+        ("es-ES-ElviraNeural", "Elvira — Spain Spanish female"),
+        ("es-ES-LauraNeural", "Laura — Spain Spanish female (calm)"),
+        ("es-MX-DaliaNeural", "Dalia — Mexican Spanish female"),
+        ("es-MX-JorgeNeural", "Jorge — Mexican Spanish male"),
+        ("es-AR-ElenaNeural", "Elena — Argentinian Spanish female"),
+    ],
+    "French (FR / CA)": [
+        ("fr-FR-DeniseNeural", "Denise — French female"),
+        ("fr-FR-HenriNeural", "Henri — French male"),
+        ("fr-CA-SylvieNeural", "Sylvie — Canadian French female"),
+    ],
+    "German": [
+        ("de-DE-KatjaNeural", "Katja — German female"),
+        ("de-DE-ConradNeural", "Conrad — German male"),
+    ],
+    "Italian": [
+        ("it-IT-ElsaNeural", "Elsa — Italian female"),
+        ("it-IT-DiegoNeural", "Diego — Italian male"),
+        ("it-IT-IsabellaNeural", "Isabella — Italian female (warm)"),
+    ],
+    "Portuguese (BR / PT)": [
+        ("pt-BR-FranciscaNeural", "Francisca — Brazilian female"),
+        ("pt-BR-AntonioNeural", "Antonio — Brazilian male"),
+        ("pt-PT-RaquelNeural", "Raquel — European Portuguese female"),
+    ],
+    "Japanese": [
+        ("ja-JP-NanamiNeural", "Nanami — Japanese female"),
+        ("ja-JP-KeitaNeural", "Keita — Japanese male"),
+    ],
+    "Chinese (CN / HK / TW)": [
+        ("zh-CN-XiaoxiaoNeural", "Xiaoxiao — Mandarin female"),
+        ("zh-CN-YunyangNeural", "Yunyang — Mandarin male"),
+        ("zh-HK-HiuMaanNeural", "HiuMaan — Cantonese female"),
+        ("zh-TW-HsiaoChenNeural", "HsiaoChen — Taiwanese Mandarin female"),
+    ],
+    "Other": [
+        ("it-IT-GiuseppeNeural", "Giuseppe — Italian male"),
+        ("ko-KR-SunHiNeural", "SunHi — Korean female"),
+        ("ko-KR-InJoonNeural", "InJoon — Korean male"),
+        ("nl-NL-ColetteNeural", "Colette — Dutch female"),
+        ("pl-PL-ZofiaNeural", "Zofia — Polish female"),
+        ("ru-RU-SvetlanaNeural", "Svetlana — Russian female"),
+        ("tr-TR-EmelNeural", "Emel — Turkish female"),
+    ],
+}
+
+# Flat list of (label, voice_id) for the dropdown, with the voice_id as
+# the storage value.
+VOICE_OPTIONS: list[str] = [
+    label for _group, voices in VOICE_CATALOG.items() for _vid, label in voices
+]
+VOICE_LABEL_TO_ID: dict[str, str] = {
+    label: vid for _group, voices in VOICE_CATALOG.items() for vid, label in voices
+}
+VOICE_ID_TO_LABEL: dict[str, str] = {vid: label for label, vid in VOICE_LABEL_TO_ID.items()}
+# A separator marker so the dropdown can visually group entries.
+_VOICE_GROUP_ORDER: list[str] = list(VOICE_CATALOG.keys())
+
+
+def _voice_options_with_groups() -> list[str]:
+    """Build a list of options with group headers as the first entries.
+
+    CustomTkinter's dropdown doesn't render headers natively, so we use
+    a leading em-dash separator string. The leading underscores keep
+    groups at the top of the list.
+    """
+    return VOICE_OPTIONS
+
+
+# ------------------------------------------------------ model catalog per provider
+
+# Curated chat-completions models per provider. The first entry is the
+# default; the last entry is "Custom..." which surfaces a text field
+# where the user can type any model id.
+MODEL_CATALOG: dict[str, list[str]] = {
+    "nvidia_nim_deepseek": [
+        "deepseek-ai/deepseek-v4",
+        "deepseek-ai/deepseek-r1",
+        "meta/llama-3.1-70b-instruct",
+        "meta/llama-3.1-8b-instruct",
+        "mistralai/mistral-large-2",
+        "qwen/qwen2.5-72b-instruct",
+        "Custom...",
+    ],
+    "openai_gpt": [
+        "gpt-4o-mini",
+        "gpt-4o",
+        "gpt-4.1-mini",
+        "gpt-4.1",
+        "o1-mini",
+        "o1-preview",
+        "Custom...",
+    ],
+    "anthropic_proxy": [
+        "claude-sonnet-4-5",
+        "claude-opus-4",
+        "claude-haiku-4",
+        "Custom...",
+    ],
+    "ollama_local": [
+        "llama3.1",
+        "llama3.2",
+        "mistral",
+        "qwen2.5",
+        "phi3",
+        "Custom...",
+    ],
+    "lmstudio_local": [
+        "local-model",
+        "Custom...",
+    ],
+    "custom": [
+        "Custom...",
+    ],
+}
+
+
+# Default system prompt for the script writer. Surfaced in the GUI as
+# the value of the "System prompt" text box; the user can edit it.
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a senior scriptwriter who specialises in calm, hypnotic "
+    "narration designed to be listened to as someone falls asleep. "
+    "Write in short, soothing sentences. Use a warm, second-person voice. "
+    "Avoid dramatic tension, jump scares, or stressful imagery. Weave in "
+    "gentle repetition. Insert clear paragraph breaks every two to three "
+    "sentences so the narrator can breathe."
+)
+
+
 # --------------------------------------------------------------- launch
 
 
@@ -270,13 +429,15 @@ class StudioApp(ctk.CTk):
     # ---------------------------------------------------------- tab: provider
     def _build_provider_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
+        parent.grid_columnconfigure(1, weight=1)
+        parent.grid_rowconfigure(99, weight=1)
 
         ctk.CTkLabel(
             parent,
             text="AI Provider",
             font=("Inter", 18, "bold"),
             text_color=PALETTE["text"],
-        ).grid(row=0, column=0, padx=20, pady=(20, 8), sticky="w")
+        ).grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 8), sticky="w")
 
         preset_labels = [p.label for p in PROVIDER_PRESETS]
         self.provider_label_var = tk.StringVar(value=preset_labels[0])
@@ -289,7 +450,7 @@ class StudioApp(ctk.CTk):
             button_color=PALETTE["accent"],
             button_hover_color="#6D28D9",
             text_color=PALETTE["text"],
-        ).grid(row=1, column=0, padx=20, pady=4, sticky="ew")
+        ).grid(row=1, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
 
         self.provider_notes = ctk.CTkLabel(
             parent,
@@ -298,25 +459,25 @@ class StudioApp(ctk.CTk):
             justify="left",
             wraplength=700,
         )
-        self.provider_notes.grid(row=2, column=0, padx=20, pady=(0, 16), sticky="w")
+        self.provider_notes.grid(row=2, column=0, columnspan=2, padx=20, pady=(0, 16), sticky="w")
 
         form = ctk.CTkFrame(parent, fg_color="transparent")
-        form.grid(row=3, column=0, padx=20, pady=8, sticky="ew")
+        form.grid(row=3, column=0, columnspan=2, padx=20, pady=8, sticky="ew")
         form.grid_columnconfigure(1, weight=1)
 
         self.base_url_var = tk.StringVar()
         self.api_key_var = tk.StringVar()
-        self.model_var = tk.StringVar()
+        self.model_label_var = tk.StringVar()
         self.temperature_var = tk.StringVar(value="0.7")
         self.max_tokens_var = tk.StringVar(value="4096")
         self.max_retries_var = tk.StringVar(value="6")
         self.timeout_var = tk.StringVar(value="120")
 
+        # Form rows for non-model fields.
         for row, (label, var) in enumerate(
             [
                 ("Base URL", self.base_url_var),
                 ("API key", self.api_key_var),
-                ("Model", self.model_var),
                 ("Temperature", self.temperature_var),
                 ("Max tokens", self.max_tokens_var),
                 ("Max retries", self.max_retries_var),
@@ -335,20 +496,94 @@ class StudioApp(ctk.CTk):
                 show="•" if label == "API key" else "",
             ).grid(row=row, column=1, padx=8, pady=6, sticky="ew")
 
+        # Model row: a dropdown of curated common models for the current
+        # provider, plus a "Custom..." text field for anything else.
+        model_row = 99  # placeholder; we'll lay this out explicitly below
+        ctk.CTkLabel(parent, text="Model", text_color=PALETTE["muted"]).grid(
+            row=4, column=0, padx=20, pady=(12, 0), sticky="w"
+        )
+        ctk.CTkLabel(parent, text="Custom model id", text_color=PALETTE["muted"]).grid(
+            row=4, column=1, padx=20, pady=(12, 0), sticky="w"
+        )
+        self.model_dropdown = ctk.CTkOptionMenu(
+            parent,
+            values=MODEL_CATALOG.get(PROVIDER_PRESETS[0].id, ["Custom..."]),
+            variable=self.model_label_var,
+            command=lambda _v: self._on_model_dropdown_changed(),
+            fg_color=PALETTE["panel_alt"],
+            button_color=PALETTE["accent"],
+            button_hover_color="#6D28D9",
+            text_color=PALETTE["text"],
+        )
+        self.model_dropdown.grid(row=5, column=0, padx=20, pady=4, sticky="ew")
+        # The storage of the actual model id the connector will use.
+        self.model_var = tk.StringVar()
+        self.custom_model_var = tk.StringVar()
+        self.custom_model_entry = ctk.CTkEntry(
+            parent,
+            textvariable=self.custom_model_var,
+            fg_color=PALETTE["panel_alt"],
+            text_color=PALETTE["text"],
+            border_color=PALETTE["border"],
+            placeholder_text="or type any model id here",
+        )
+        self.custom_model_entry.grid(row=5, column=1, padx=20, pady=4, sticky="ew")
+        self.custom_model_entry.bind("<FocusOut>", lambda _e: self._on_model_dropdown_changed())
+
         models_row = ctk.CTkFrame(parent, fg_color="transparent")
-        models_row.grid(row=4, column=0, padx=20, pady=(4, 20), sticky="ew")
+        models_row.grid(row=6, column=0, columnspan=2, padx=20, pady=(4, 12), sticky="ew")
         ctk.CTkButton(
             models_row,
-            text="Load model list",
+            text="Load model list from provider",
             fg_color=PALETTE["panel_alt"],
             hover_color=PALETTE["border"],
             text_color=PALETTE["text"],
             command=self._on_load_models,
         ).pack(side="left")
         self.models_label = ctk.CTkLabel(
-            models_row, text="(no model list fetched yet)", text_color=PALETTE["muted"]
+            models_row, text="(no list fetched yet)", text_color=PALETTE["muted"]
         )
         self.models_label.pack(side="left", padx=12)
+
+        # ---- Advanced: editable system prompt ----
+        self.advanced_visible = tk.BooleanVar(value=False)
+        adv_toggle = ctk.CTkButton(
+            parent,
+            text="Show advanced (system prompt)",
+            command=self._toggle_advanced,
+            fg_color=PALETTE["panel_alt"],
+            hover_color=PALETTE["border"],
+            text_color=PALETTE["text"],
+            height=32,
+        )
+        adv_toggle.grid(row=7, column=0, columnspan=2, padx=20, pady=(8, 4), sticky="ew")
+        self._advanced_toggle_button = adv_toggle
+
+        adv_help = ctk.CTkLabel(
+            parent,
+            text=(
+                "The system prompt tells the AI how to write your script. "
+                "Leave it empty to use the built-in default (calm, sleep-friendly narration). "
+                "Edit it if you want a different tone, length, or persona."
+            ),
+            text_color=PALETTE["muted"],
+            wraplength=700,
+            justify="left",
+        )
+        self.advanced_help_label = adv_help
+        self.system_prompt_text = ctk.CTkTextbox(
+            parent,
+            fg_color=PALETTE["panel_alt"],
+            text_color=PALETTE["text"],
+            border_color=PALETTE["border"],
+            border_width=1,
+            font=("Inter", 12),
+            wrap="word",
+            height=160,
+        )
+        # Hidden by default.
+        adv_help.grid_remove()
+        self.system_prompt_text.grid_remove()
 
     # ----------------------------------------------------------- tab: visuals
     def _build_visual_tab(self, parent: ctk.CTkFrame) -> None:
@@ -489,15 +724,41 @@ class StudioApp(ctk.CTk):
             text_color=PALETTE["text"],
         ).grid(row=1, column=0, padx=20, pady=4, sticky="ew")
 
-        self.tts_voice_var = tk.StringVar(value="en-US-AriaNeural")
-        ctk.CTkEntry(
+        # Voice: dropdown of curated voices (label shown, voice id stored).
+        # The last entry is "Custom..." which reveals a text field for
+        # arbitrary Edge voice ids.
+        self.tts_voice_label_var = tk.StringVar(value=VOICE_ID_TO_LABEL.get("en-US-AriaNeural", ""))
+        self._voice_options = _voice_options_with_groups() + ["Custom..."]
+        ctk.CTkLabel(parent, text="Voice", text_color=PALETTE["muted"]).grid(
+            row=2, column=0, padx=20, pady=(8, 0), sticky="w"
+        )
+        ctk.CTkLabel(parent, text="Or type a custom voice id", text_color=PALETTE["muted"]).grid(
+            row=2, column=1, padx=20, pady=(8, 0), sticky="w"
+        )
+        ctk.CTkOptionMenu(
             parent,
-            textvariable=self.tts_voice_var,
+            values=self._voice_options,
+            variable=self.tts_voice_label_var,
+            command=lambda _v: self._on_voice_changed(),
+            fg_color=PALETTE["panel_alt"],
+            button_color=PALETTE["accent"],
+            button_hover_color="#6D28D9",
+            text_color=PALETTE["text"],
+        ).grid(row=3, column=0, padx=20, pady=4, sticky="ew")
+        self.custom_voice_var = tk.StringVar(value="en-US-AriaNeural")
+        self.custom_voice_entry = ctk.CTkEntry(
+            parent,
+            textvariable=self.custom_voice_var,
             fg_color=PALETTE["panel_alt"],
             text_color=PALETTE["text"],
             border_color=PALETTE["border"],
-            placeholder_text="Edge voice id (e.g. en-US-AriaNeural)",
-        ).grid(row=1, column=1, padx=20, pady=4, sticky="ew")
+            placeholder_text="custom Edge voice id (e.g. en-US-AriaNeural)",
+        )
+        # Hidden by default; shown when the user picks "Custom...".
+        self.custom_voice_entry.grid(row=3, column=1, padx=20, pady=4, sticky="ew")
+        self.custom_voice_entry.grid_remove()
+        # The actual storage: the voice id.
+        self.tts_voice_var = tk.StringVar(value="en-US-AriaNeural")
 
         tts_row = ctk.CTkFrame(parent, fg_color="transparent")
         tts_row.grid(row=2, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
@@ -644,13 +905,21 @@ class StudioApp(ctk.CTk):
                 preset_idx = i
                 break
         self.provider_label_var.set(PROVIDER_PRESETS[preset_idx].label)
+        # Wire the model dropdown for the selected provider.
+        curated = MODEL_CATALOG.get(PROVIDER_PRESETS[preset_idx].id, ["Custom..."])
+        if s.model and s.model not in curated:
+            curated = [s.model] + curated
+        self.model_dropdown.configure(values=curated)
+        self.model_label_var.set(s.model if s.model in curated else "Custom...")
+        self.custom_model_var.set(s.model)
         self._on_provider_changed(PROVIDER_PRESETS[preset_idx].label)
         self.base_url_var.set(s.base_url)
-        self.model_var.set(s.model)
         self.temperature_var.set(str(s.temperature))
         self.max_tokens_var.set(str(s.max_tokens))
         self.max_retries_var.set(str(s.max_retries))
         self.timeout_var.set(str(s.request_timeout))
+        # System prompt: empty means use the built-in default.
+        self.system_prompt_text.insert("1.0", s.system_prompt)
         self.topic_text.insert("1.0", s.script_topic)
         self.script_path_var.set(s.script_file)
         self.bg_image_var.set(s.background_image)
@@ -659,7 +928,18 @@ class StudioApp(ctk.CTk):
         self.pause_var.set(str(s.pause_between_paragraphs))
         self.language_var.set(s.language)
         self.tts_backend_var.set(s.tts_backend.value)
-        self.tts_voice_var.set(s.tts_voice)
+        # Voice: pick the matching label, or fall back to the raw id
+        # (which becomes "Custom..." in the dropdown).
+        voice_label = VOICE_ID_TO_LABEL.get(s.tts_voice)
+        if voice_label:
+            self.tts_voice_label_var.set(voice_label)
+            self.tts_voice_var.set(s.tts_voice)
+            self.custom_voice_entry.grid_remove()
+        else:
+            self.tts_voice_label_var.set("Custom...")
+            self.custom_voice_var.set(s.tts_voice)
+            self.tts_voice_var.set(s.tts_voice)
+            self.custom_voice_entry.grid()
         self.tts_rate_var.set(s.tts_rate)
         self.tts_pitch_var.set(s.tts_pitch)
         self.ambient_mode_var.set(s.ambient_mode.value)
@@ -677,7 +957,12 @@ class StudioApp(ctk.CTk):
         preset = self._current_preset()
         s.provider_id = preset.id
         s.base_url = self.base_url_var.get().strip() or preset.base_url
-        s.model = self.model_var.get().strip() or preset.default_model
+        # Model: dropdown value or custom text field.
+        dropdown_value = self.model_label_var.get().strip()
+        if dropdown_value == "Custom...":
+            s.model = self.custom_model_var.get().strip() or preset.default_model
+        else:
+            s.model = dropdown_value or preset.default_model
         s.api_key = self.api_key_var.get().strip()
         try:
             s.temperature = float(self.temperature_var.get() or "0.7")
@@ -699,13 +984,20 @@ class StudioApp(ctk.CTk):
         s.background_video = self.bg_video_var.get().strip()
         s.language = self.language_var.get().strip() or "en"
         s.tts_backend = TTSBackend(self.tts_backend_var.get())
-        s.tts_voice = self.tts_voice_var.get().strip() or "en-US-AriaNeural"
+        # Voice: dropdown value maps to voice id, Custom... uses the text field.
+        voice_label = self.tts_voice_label_var.get().strip()
+        if voice_label == "Custom...":
+            s.tts_voice = self.custom_voice_var.get().strip() or "en-US-AriaNeural"
+        else:
+            s.tts_voice = VOICE_LABEL_TO_ID.get(voice_label, voice_label) or "en-US-AriaNeural"
         s.tts_rate = self.tts_rate_var.get().strip() or "-5%"
         s.tts_pitch = self.tts_pitch_var.get().strip() or "-2Hz"
         s.ambient_mode = AmbientMode(self.ambient_mode_var.get())
         s.output_preset = OutputPreset(self.preset_var.get())
         s.hardware_accel = self.hw_var.get()
         s.progress_bar_position = self.bar_position_var.get()
+        # System prompt: empty means use the built-in default.
+        s.system_prompt = self.system_prompt_text.get("1.0", "end").strip()
         return s
 
     def _current_preset(self):
@@ -719,19 +1011,38 @@ class StudioApp(ctk.CTk):
     def _on_provider_changed(self, label: str) -> None:
         preset = next((p for p in PROVIDER_PRESETS if p.label == label), PROVIDER_PRESETS[0])
         self.base_url_var.set(preset.base_url)
-        self.model_var.set(preset.default_model)
+        # Refresh the model dropdown for the new provider. Keep the
+        # previously-selected model id if it happens to be in the new
+        # curated list; otherwise fall back to the preset's default.
+        curated = list(MODEL_CATALOG.get(preset.id, ["Custom..."]))
+        previous = self.model_var.get().strip() if hasattr(self, "model_var") else ""
+        if previous and previous in curated:
+            chosen = previous
+        else:
+            chosen = curated[0] if curated else "Custom..."
+        try:
+            self.model_dropdown.configure(values=curated)
+        except Exception:  # noqa: BLE001
+            pass
+        self.model_label_var.set(chosen)
+        if chosen == "Custom...":
+            self.custom_model_var.set(previous or preset.default_model)
+            self.model_var.set(self.custom_model_var.get().strip())
+        else:
+            self.model_var.set(chosen)
         self.provider_notes.configure(text=preset.notes or f"Provider: {preset.provider.value}")
 
     def _on_load_models(self) -> None:
-        s = self._collect_settings()
-        from .ai.connector import AIConnector
-        from .core import ProviderError
+        """Ask the current provider for its model list and merge it in."""
+        from ..ai.connector import AIConnector
+        from ..core.exceptions import ProviderError
 
+        s = self._collect_settings()
         try:
             connector = AIConnector(
                 base_url=s.base_url,
                 api_key=s.api_key,
-                model=s.model,
+                model=s.model or "list-models",
                 timeout=s.request_timeout,
                 max_retries=1,
             )
@@ -740,13 +1051,84 @@ class StudioApp(ctk.CTk):
         except ProviderError as exc:
             self.models_label.configure(text=f"Error: {exc}")
             return
-        if not models:
-            self.models_label.configure(text="(provider returned no model list)")
+        except Exception as exc:  # noqa: BLE001 - network/auth errors are common
+            self.models_label.configure(text=f"Network/auth error: {exc}")
             return
-        display = ", ".join(models[:5]) + ("…" if len(models) > 5 else "")
-        self.models_label.configure(text=f"Found {len(models)} models: {display}")
-        if not self.model_var.get() and models:
-            self.model_var.set(models[0])
+
+        if not models:
+            self.models_label.configure(
+                text="(provider returned an empty list - your endpoint may not expose /models)"
+            )
+            return
+
+        # Build a merged option list: curated + provider list, deduped,
+        # "Custom..." always at the end so the user can type their own.
+        curated = list(MODEL_CATALOG.get(self._current_preset().id, []))
+        merged: list[str] = []
+        seen: set[str] = set()
+        for m in curated + models:
+            if m == "Custom...":
+                continue
+            if m in seen:
+                continue
+            seen.add(m)
+            merged.append(m)
+        merged.append("Custom...")
+
+        try:
+            self.model_dropdown.configure(values=merged)
+        except Exception:  # noqa: BLE001
+            # Some CTk versions don't expose configure on OptionMenu.
+            pass
+
+        display = ", ".join(models[:5]) + ("..." if len(models) > 5 else "")
+        self.models_label.configure(
+            text=f"Loaded {len(models)} from provider ({display}). Pick one in the dropdown above."
+        )
+
+        # If the current value is not in the merged list, leave it; the
+        # user can still type a custom id in the right-hand field.
+
+    def _on_model_dropdown_changed(self) -> None:
+        """Sync the dropdown choice into ``self.model_var``.
+
+        "Custom..." puts whatever is in the right-hand field into play.
+        """
+        choice = self.model_label_var.get()
+        if choice == "Custom...":
+            self.model_var.set(self.custom_model_var.get().strip())
+        else:
+            self.model_var.set(choice)
+
+    def _on_voice_changed(self) -> None:
+        """Sync the dropdown choice into ``self.tts_voice_var``.
+
+        "Custom..." reveals the text field and uses whatever the user
+        typed as the voice id.
+        """
+        label = self.tts_voice_label_var.get()
+        if label == "Custom...":
+            self.custom_voice_entry.grid()
+            self.tts_voice_var.set(self.custom_voice_var.get().strip())
+        else:
+            self.custom_voice_entry.grid_remove()
+            self.tts_voice_var.set(VOICE_LABEL_TO_ID.get(label, label))
+
+    def _toggle_advanced(self) -> None:
+        if self.advanced_visible.get():
+            self.advanced_help_label.grid_remove()
+            self.system_prompt_text.grid_remove()
+            self._advanced_toggle_button.configure(text="Show advanced (system prompt)")
+            self.advanced_visible.set(False)
+        else:
+            self.advanced_help_label.grid(
+                row=8, column=0, columnspan=2, padx=20, pady=(8, 0), sticky="w"
+            )
+            self.system_prompt_text.grid(
+                row=9, column=0, columnspan=2, padx=20, pady=4, sticky="nsew"
+            )
+            self._advanced_toggle_button.configure(text="Hide advanced")
+            self.advanced_visible.set(True)
 
     def _browse_script(self) -> None:
         path = ctk.filedialog.askopenfilename(filetypes=[("Text", "*.txt"), ("All", "*.*")])

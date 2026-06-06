@@ -130,6 +130,7 @@ class AppSettings:
     max_tokens: int = 4096
     request_timeout: float = 120.0
     max_retries: int = 6
+    system_prompt: str = ""  # Empty = use the built-in default in script_writer.py.
 
     # TTS
     tts_backend: TTSBackend = TTSBackend.EDGE
@@ -199,6 +200,7 @@ def save_settings(path: Path, settings: AppSettings) -> None:
         "max_tokens": settings.max_tokens,
         "request_timeout": settings.request_timeout,
         "max_retries": settings.max_retries,
+        "system_prompt": settings.system_prompt,
         "tts_backend": settings.tts_backend.value,
         "tts_voice": settings.tts_voice,
         "tts_rate": settings.tts_rate,
@@ -244,6 +246,11 @@ def _toml_literal(value: Any) -> str:
     if isinstance(value, (int, float)):
         return repr(value)
     if isinstance(value, str):
+        # Use triple-quoted multi-line strings when the value contains a
+        # newline, so the saved config stays readable.
+        if "\n" in value:
+            inner = value.replace('"""', '\\"\\"\\"')
+            return f'"""\n{inner}\n"""'
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
     if isinstance(value, list):
