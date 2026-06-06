@@ -40,30 +40,110 @@ local media server. Zero platform lock-in, runs free or fully local.
 
 ## Quickstart
 
+The studio is built and run with [uv](https://docs.astral.sh/uv/), a single
+Rust-powered tool that handles Python installs, virtualenvs, and locked
+dependency resolution. If you do not have it yet:
+
 ```bash
-# 1. Get a free NVIDIA NIM key at https://build.nvidia.com
-# 2. Clone, install, and launch.
-git clone https://github.com/sleeplens/sleeplens.git
-cd sleeplens
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # macOS / Linux
-pip install -r requirements.txt
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
-# Optional: drop a ffmpeg build into cache/ if you do not have one on PATH.
-# A working ffmpeg.exe is required for the encode step.
-
-# 3. Set your key (or paste it in the GUI later).
-cp .env.example .env
-# edit .env and put your key in SLEEPLENS_API_KEY
-
-# 4. Launch.
-python run.py
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-A small first render takes about 30 seconds on a modern laptop. A 30 minute
-narration takes about 4 minutes with NVENC, or 10 to 15 minutes with
-libx264 at 720p.
+Then clone and launch:
+
+```bash
+git clone https://github.com/fernandojjq/sleeplens.git
+cd sleeplens
+
+# Creates .venv and installs every dependency locked in uv.lock.
+# This includes pytest, ruff, and mypy under the dev group.
+uv sync
+
+# Launch the desktop studio.
+uv run python run.py
+```
+
+A first render with the bundled ffmpeg finishes in about 30 seconds on
+a modern laptop. A 30 minute narration takes about 4 minutes with
+NVENC, or 10 to 15 minutes with libx264 at 720p.
+
+### FFmpeg
+
+FFmpeg is the only system-level dependency. Any 6.x or 8.x build with
+`libx264` enabled works. The studio looks in this order:
+
+1. The path stored in the `FFMPEG_BIN` environment variable.
+2. `cache/ffmpeg.exe` (Windows) or `cache/ffmpeg` (POSIX) inside the
+   repo. This is the bundled location; drop a build there and forget
+   about it.
+3. Whatever is on `PATH`.
+
+If you do not have ffmpeg, grab a static build for your platform from
+https://www.gyan.dev/ffmpeg/builds/ (Windows) or
+https://johnvansickle.com/ffmpeg/ (Linux). No installer required. Drop
+the binary into the repo's `cache/` folder and you are done.
+
+### First-time API setup
+
+The first render uses Edge-TTS, so it works without any API key. To
+generate the script from a topic instead of pasting your own, get a
+free NVIDIA NIM key at https://build.nvidia.com and drop it in:
+
+```bash
+cp .env.example .env
+# edit .env and paste your key into SLEEPLENS_API_KEY
+```
+
+You can also paste the key straight into the GUI (Provider tab) and
+it gets persisted to `.sleeplens.toml` for next time.
+
+## Daily workflow
+
+```bash
+# Pull the latest source and dependencies.
+git pull
+uv sync
+
+# Run the GUI.
+uv run python run.py
+
+# Run the test suite.
+uv run pytest
+
+# Lint and type-check.
+uv run ruff check src tests
+uv run mypy src
+
+# Render a video without opening the GUI.
+uv run python run.py render --topic "the discovery of penicillin" --output-stem penicillin
+```
+
+`uv run` is the one entry point. It resolves the right interpreter,
+activates the project venv, and runs the command. No need to manually
+`source` anything.
+
+## Troubleshooting
+
+- **`ffmpeg not found` when rendering.** Drop a static `ffmpeg.exe`
+  into the `cache/` folder of your clone, or set `FFMPEG_BIN` to the
+  full path of your system install.
+- **`ModuleNotFoundError: sleeplens`.** You ran `python run.py`
+  without `uv run`. Use `uv run python run.py` or activate the venv
+  with `.venv\Scripts\activate` (Windows) / `source .venv/bin/activate`
+  (POSIX) first.
+- **NVIDIA NIM 401 / 403.** Your key is missing or expired. Re-paste it
+  in the GUI Provider tab or in `.env`. The free tier allows 40 RPM,
+  which is more than enough for a full script.
+- **Edge-TTS fails to connect.** Edge-TTS reaches Microsoft over
+  WebSocket. If you are behind a strict firewall, switch the TTS
+  backend to `piper` (offline) or supply your own pre-rendered voice
+  track.
+- **PyTorch / CUDA optional extras.** If you want GPU text generation
+  via `uv`, install the optional group with `uv pip install torch --extra-index-url https://download.pytorch.org/whl/cu121`
+  inside the active venv.
 
 ## Why Sleeplens
 
@@ -195,7 +275,8 @@ sleeplens/
 ├── docs/                   # preview frames + screenshots
 ├── run.py                  # quickstart launcher
 ├── pyproject.toml
-├── requirements.txt
+├── requirements.txt         # pip-compatible pin, generated from uv.lock
+├── uv.lock                  # authoritative dep lockfile
 ├── .env.example
 ├── .gitignore
 ├── LICENSE                 # MIT
