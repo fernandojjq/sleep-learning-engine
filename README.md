@@ -109,7 +109,7 @@ git pull
 uv sync
 
 # Run the GUI.
-uv run python run.py
+uv run python run.py gui
 
 # Run the test suite.
 uv run pytest
