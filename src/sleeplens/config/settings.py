@@ -43,7 +43,7 @@ class OutputPreset(StrEnum):
     """Target encoding profile."""
 
     SLEEP_720P = "sleep_720p"
-    SLEEP_1080P = "sleep_108p"
+    SLEEP_1080P = "sleep_1080p"
     AUDIO_ONLY = "audio_only"
 
 

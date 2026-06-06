@@ -71,7 +71,7 @@ Ajustes que importan:
 | **Audio** | Ambient bed mode | `auto` | Matchea por keyword (rain, ocean, lofi, etc.) |
 | **Audio** | Bed volume | `0.18` | Ambiente presente pero no tapa la voz |
 | **Audio** | Duck amount | `12` dB | Voz clarísima, ambient baja cuando hablás |
-| **Render** | Output preset | `sleep_720p` (o `sleep_1080p` para Full HD) | Suficiente para YouTube y podcast |
+| **Render** | Output preset | `sleep_720p` o `sleep_1080p` para Full HD | Suficiente para YouTube y podcast |
 | **Render** | Encoder | `auto` | NVENC si tenés NVIDIA, si no libx264 |
 
 Lo demás lo dejás como está. Si no querés tocar nada, los defaults
@@ -83,21 +83,45 @@ visual → encode).
 
 ### 4. Listo, agarrá el MP4
 
-Cuando termina te muestra dónde quedó:
+Cuando termina, el sidebar te muestra dónde quedó, qué tan largo es
+y el estado del pipeline. El archivo vive en:
 
 ```
 D:\proyectos\Proyectos Github\sleeplens\output\sleeplens-1717729384.mp4
 ```
 
 El nombre es la timestamp del momento. Si querés un nombre más
-amigable, en la pestaña **Render** abajo no hay un campo directo,
-pero lo más fácil es renombrarlo desde el explorador de Windows.
-
-O desde la línea de comandos lo hacés más prolijo:
+amigable, renombralo desde el explorador de Windows o desde la
+terminal:
 
 ```powershell
 Rename-Item "D:\proyectos\Proyectos Github\sleeplens\output\sleeplens-1717729384.mp4" "historia-roma-30m.mp4"
 ```
+
+### 4b. Botones del sidebar (de arriba para abajo)
+
+| Botón | Qué hace |
+| ----- | -------- |
+| **Render full video** | El flujo completo: script → voz → ambient → mix → visual → encode |
+| **Generate script only** | Solo genera el guion y lo guarda como `.txt` en `output/`. Útil para iterar el texto antes de invertir 5 min en renderizar audio + video |
+| **Save settings (API key, model, etc.)** | Persiste TODO (API key, modelo, voz, ambient, output) en `.sleeplens.toml`. No necesitas renderizar para guardar |
+| **Cancel** | Aparece habilitado durante un render. Cancela limpiamente (los archivos parciales se limpian) |
+
+---
+
+## Generar solo el guion (para iterar rápido)
+
+Si querés probar varios enfoques del mismo tema sin esperar el
+render completo cada vez, usá **Generate script only**. Te guarda
+el `.txt` en `output/` y te dice la ruta. Después podés:
+
+- Releerlo y ajustarlo
+- Cargar ese `.txt` en el campo "Or load a script file" de la
+  pestaña Topic
+- Renderizar el video con el guion ya pulido
+
+Tiempo típico: 5-15 segundos por iteración de guion, vs 5-10 min
+por render completo.
 
 ---
 

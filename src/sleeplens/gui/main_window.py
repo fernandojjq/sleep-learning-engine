@@ -22,6 +22,7 @@ from ..config import (
 )
 from ..core import SleeplensError, run_render
 from ..core.state import RenderEvent, RenderStage, RenderStatus
+from ..core.pipeline import build_connector
 from ..utils.logging import configure_logging, get_logger
 
 log = get_logger()
@@ -146,40 +147,65 @@ def _voice_options_with_groups() -> list[str]:
 
 # ------------------------------------------------------ model catalog per provider
 
-# Curated chat-completions models per provider. The first entry is the
-# default; the last entry is "Custom..." which surfaces a text field
-# where the user can type any model id.
+# Curated chat-completions models per provider, refreshed June 2026.
+# The first entry is the default; the last entry is "Custom..." which
+# surfaces a text field where the user can type any model id.
 MODEL_CATALOG: dict[str, list[str]] = {
     "nvidia_nim_deepseek": [
+        # DeepSeek family.
         "deepseek-ai/deepseek-v4",
+        "deepseek-ai/deepseek-v3.2",
         "deepseek-ai/deepseek-r1",
+        # Meta Llama family.
+        "meta/llama-3.3-70b-instruct",
         "meta/llama-3.1-70b-instruct",
         "meta/llama-3.1-8b-instruct",
+        # NVIDIA Nemotron family.
+        "nvidia/nemotron-3-ultra-550b-a55b-nvfp4",
+        "nvidia/nemotron-4-340b-instruct",
+        "nvidia/llama-3.3-nemotron-super-49b-v1",
+        "nvidia/llama-3.1-nemotron-70b-instruct",
+        # Mistral family.
         "mistralai/mistral-large-2",
+        "mistralai/mistral-small-3",
+        "mistralai/mixtral-8x22b-instruct",
+        # Qwen family.
+        "qwen/qwen3-235b-a22b",
         "qwen/qwen2.5-72b-instruct",
+        "qwen/qwq-32b-preview",
+        # Google Gemma.
+        "google/gemma-3-27b-it",
         "Custom...",
     ],
     "openai_gpt": [
-        "gpt-4o-mini",
-        "gpt-4o",
-        "gpt-4.1-mini",
-        "gpt-4.1",
-        "o1-mini",
-        "o1-preview",
+        "gpt-5.5",
+        "gpt-5.5-instant",
+        "gpt-5.4",
+        "gpt-5.3-instant",
+        "gpt-5",
+        "gpt-5-mini",
+        "o3",
+        "o4-mini",
         "Custom...",
     ],
     "anthropic_proxy": [
-        "claude-sonnet-4-5",
-        "claude-opus-4",
-        "claude-haiku-4",
+        "claude-opus-4-8",
+        "claude-opus-4-6",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5",
         "Custom...",
     ],
     "ollama_local": [
-        "llama3.1",
+        "llama4-scout",
+        "llama3.3",
         "llama3.2",
-        "mistral",
+        "llama3.1",
+        "qwen3",
         "qwen2.5",
-        "phi3",
+        "gemma4",
+        "gemma3",
+        "phi-4",
+        "mistral",
         "Custom...",
     ],
     "lmstudio_local": [
@@ -268,29 +294,45 @@ class StudioApp(ctk.CTk):
             font=("Inter", 12),
             text_color=PALETTE["muted"],
         )
-        subheader.grid(row=1, column=0, padx=24, pady=(0, 24), sticky="w")
+        subheader.grid(row=1, column=0, padx=24, pady=(0, 16), sticky="w")
 
-        self.nav_indicator = ctk.CTkLabel(
+        # ---- Stage tracker: shows the current high-level state. ----
+        self.stage_label = ctk.CTkLabel(
             parent,
-            text="",
-            font=("Inter", 12, "bold"),
-            text_color=PALETTE["accent_alt"],
-        )
-        self.nav_indicator.grid(row=2, column=0, padx=24, pady=(0, 12), sticky="w")
-
-        self.status_label = ctk.CTkLabel(
-            parent,
-            text="Ready.",
+            text="Configure a script or topic, then hit Render.",
             font=("Inter", 12),
             text_color=PALETTE["muted"],
             wraplength=260,
             justify="left",
         )
-        self.status_label.grid(row=5, column=0, padx=24, pady=(0, 24), sticky="swe")
+        self.stage_label.grid(row=2, column=0, padx=24, pady=(0, 6), sticky="w")
 
+        # ---- Where the last MP4 landed (or empty if none yet). ----
+        self.last_output_label = ctk.CTkLabel(
+            parent,
+            text="",
+            font=("Inter", 11),
+            text_color=PALETTE["text"],
+            wraplength=260,
+            justify="left",
+        )
+        self.last_output_label.grid(row=3, column=0, padx=24, pady=(0, 4), sticky="w")
+
+        # ---- Status line (errors, warnings, in-flight). ----
+        self.status_label = ctk.CTkLabel(
+            parent,
+            text="",
+            font=("Inter", 12),
+            text_color=PALETTE["muted"],
+            wraplength=260,
+            justify="left",
+        )
+        self.status_label.grid(row=5, column=0, padx=24, pady=(0, 12), sticky="swe")
+
+        # ---- Primary actions (stacked, equal width). ----
         self.render_button = ctk.CTkButton(
             parent,
-            text="Render video",
+            text="Render full video",
             font=("Inter", 14, "bold"),
             fg_color=PALETTE["accent"],
             hover_color="#6D28D9",
@@ -298,21 +340,47 @@ class StudioApp(ctk.CTk):
             corner_radius=10,
             command=self._on_render_clicked,
         )
-        self.render_button.grid(row=6, column=0, padx=24, pady=(0, 12), sticky="ew")
+        self.render_button.grid(row=6, column=0, padx=24, pady=(0, 8), sticky="ew")
 
-        self.cancel_button = ctk.CTkButton(
+        self.script_button = ctk.CTkButton(
             parent,
-            text="Cancel",
+            text="Generate script only",
             font=("Inter", 13),
             fg_color=PALETTE["panel_alt"],
             hover_color=PALETTE["border"],
             text_color=PALETTE["text"],
             height=36,
             corner_radius=8,
+            command=self._on_generate_script_only,
+        )
+        self.script_button.grid(row=7, column=0, padx=24, pady=(0, 6), sticky="ew")
+
+        self.save_button = ctk.CTkButton(
+            parent,
+            text="Save settings (API key, model, etc.)",
+            font=("Inter", 12),
+            fg_color=PALETTE["panel_alt"],
+            hover_color=PALETTE["border"],
+            text_color=PALETTE["text"],
+            height=32,
+            corner_radius=8,
+            command=self._on_save_clicked,
+        )
+        self.save_button.grid(row=8, column=0, padx=24, pady=(0, 6), sticky="ew")
+
+        self.cancel_button = ctk.CTkButton(
+            parent,
+            text="Cancel",
+            font=("Inter", 12),
+            fg_color=PALETTE["panel_alt"],
+            hover_color=PALETTE["danger"],
+            text_color=PALETTE["text"],
+            height=32,
+            corner_radius=8,
             state="disabled",
             command=self._on_cancel_clicked,
         )
-        self.cancel_button.grid(row=7, column=0, padx=24, pady=(0, 24), sticky="ew")
+        self.cancel_button.grid(row=9, column=0, padx=24, pady=(0, 20), sticky="ew")
 
     def _build_main(self, parent: ctk.CTkFrame) -> None:
         self.tabs = ctk.CTkTabview(
@@ -760,6 +828,19 @@ class StudioApp(ctk.CTk):
         # The actual storage: the voice id.
         self.tts_voice_var = tk.StringVar(value="en-US-AriaNeural")
 
+        # Note that all voices are Edge TTS. The other TTS backends
+        # listed in the dropdown are placeholders for future engines.
+        ctk.CTkLabel(
+            parent,
+            text=(
+                "All voices above are Edge TTS (free, no key). "
+                "Other TTS backends in the dropdown are placeholders for future engines."
+            ),
+            text_color=PALETTE["muted"],
+            wraplength=720,
+            justify="left",
+        ).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 8), sticky="w")
+
         tts_row = ctk.CTkFrame(parent, fg_color="transparent")
         tts_row.grid(row=2, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
         tts_row.grid_columnconfigure((0, 1), weight=1)
@@ -1011,12 +1092,17 @@ class StudioApp(ctk.CTk):
     def _on_provider_changed(self, label: str) -> None:
         preset = next((p for p in PROVIDER_PRESETS if p.label == label), PROVIDER_PRESETS[0])
         self.base_url_var.set(preset.base_url)
-        # Refresh the model dropdown for the new provider. Keep the
-        # previously-selected model id if it happens to be in the new
-        # curated list; otherwise fall back to the preset's default.
+        # Refresh the model dropdown for the new provider. Each provider
+        # has its own curated list, so the dropdown MUST change. We
+        # also re-set the variable explicitly because some CTk versions
+        # do not refresh the displayed text after `configure(values=...)`.
         curated = list(MODEL_CATALOG.get(preset.id, ["Custom..."]))
         previous = self.model_var.get().strip() if hasattr(self, "model_var") else ""
-        if previous and previous in curated:
+        # Always reset to the new provider's default unless the previous
+        # model is genuinely available in the new provider's list. The
+        # "same model for all providers" behaviour the user reported is
+        # fixed here by clearing cross-provider carry-over.
+        if previous and previous in curated and "/" in previous:
             chosen = previous
         else:
             chosen = curated[0] if curated else "Custom..."
@@ -1026,9 +1112,10 @@ class StudioApp(ctk.CTk):
             pass
         self.model_label_var.set(chosen)
         if chosen == "Custom...":
-            self.custom_model_var.set(previous or preset.default_model)
-            self.model_var.set(self.custom_model_var.get().strip())
+            self.custom_model_var.set(preset.default_model)
+            self.model_var.set(preset.default_model)
         else:
+            self.custom_model_var.set("")
             self.model_var.set(chosen)
         self.provider_notes.configure(text=preset.notes or f"Provider: {preset.provider.value}")
 
@@ -1144,6 +1231,124 @@ class StudioApp(ctk.CTk):
         if path:
             var.set(path)
 
+    def _on_save_clicked(self) -> None:
+        """Persist all current form values to .sleeplens.toml without rendering."""
+        try:
+            settings = self._collect_settings()
+        except SleeplensError as exc:
+            self.status_label.configure(text=str(exc), text_color=PALETTE["danger"])
+            return
+        self.settings = settings
+        save_settings(self.paths.config_file, settings)
+        self.status_label.configure(
+            text="Settings saved (API key, model, voice, etc. remembered for next time).",
+            text_color=PALETTE["success"],
+        )
+        self.stage_label.configure(text=f"Saved at {self.paths.config_file}")
+
+    def _on_generate_script_only(self) -> None:
+        """Run just the script-generation step and save the result to a .txt."""
+        if self._job_thread and self._job_thread.is_alive():
+            return
+        try:
+            settings = self._collect_settings()
+        except SleeplensError as exc:
+            self.status_label.configure(text=str(exc), text_color=PALETTE["danger"])
+            return
+        if not settings.script_topic.strip():
+            self.status_label.configure(
+                text="Add a topic in the Topic tab before generating a script.",
+                text_color=PALETTE["warning"],
+            )
+            return
+        if settings.script_file.strip():
+            self.status_label.configure(
+                text="You loaded a script file. Clear it to generate a new one from the topic.",
+                text_color=PALETTE["warning"],
+            )
+            return
+
+        self.settings = settings
+        save_settings(self.paths.config_file, settings)
+        self._cancel_flag.clear()
+        self._set_action_buttons(running=True, allow_cancel=True)
+        self.status_label.configure(text="Generating script…", text_color=PALETTE["accent_alt"])
+        self.progress.set(0)
+        self._append_log("Starting script generation…")
+
+        thread = threading.Thread(
+            target=self._run_script_only_job, args=(settings,), daemon=True
+        )
+        thread.start()
+        self._job_thread = thread
+
+    def _run_script_only_job(self, settings: AppSettings) -> None:
+        """Background worker: talk to the provider, save the script, surface errors."""
+        from ..ai.connector import AIConnector
+        from ..ai.script_writer import ScriptWriter
+        from ..core import ProviderError, SleeplensError
+
+        configure_logging(self.paths, level="INFO")
+        connector = build_connector(settings)
+        try:
+            writer = ScriptWriter(connector)
+            script = writer.write(
+                topic=settings.script_topic,
+                target_word_count=settings.target_word_count,
+                language=settings.language,
+                system_prompt=settings.system_prompt or None,
+            )
+            stem = "".join(c if c.isalnum() or c in " -_" else "" for c in script.title).strip()[:40] or "script"
+            target = self.paths.output_dir / f"{stem}.txt"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            script.to_file(target)
+            self.after(0, lambda: self._on_script_done(target, script))
+        except (ProviderError, SleeplensError) as exc:
+            self.after(0, lambda: self._on_job_failed(exc, ""))
+        except Exception as exc:  # noqa: BLE001
+            tb = traceback.format_exc()
+            self.after(0, lambda: self._on_job_failed(exc, tb))
+        finally:
+            try:
+                connector.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _on_script_done(self, path: Path, script) -> None:
+        self.progress.set(0.25)
+        self._append_log(
+            f"Script ready: {len(script.paragraphs)} paragraphs, {script.word_count} words -> {path}"
+        )
+        self.status_label.configure(
+            text=f"Script saved: {path.name}. Review it, then hit Render full video.",
+            text_color=PALETTE["success"],
+        )
+        self.last_output_label.configure(text=f"Latest script:\n{path}")
+        # Pre-fill the script path so a re-render uses it directly.
+        self.script_path_var.set(str(path))
+        self.script_topic_text_empty()
+        self._set_action_buttons(running=False, allow_cancel=False)
+
+    def script_topic_text_empty(self) -> None:
+        """After generating, clear the topic field so the next render uses the saved .txt."""
+        # Don't auto-clear: the user might want to re-roll the script.
+        # We just point them at the file in the status line.
+        pass
+
+    def _set_action_buttons(self, *, running: bool, allow_cancel: bool) -> None:
+        if running:
+            self.render_button.configure(state="disabled")
+            self.script_button.configure(state="disabled")
+            self.save_button.configure(state="disabled")
+        else:
+            self.render_button.configure(state="normal")
+            self.script_button.configure(state="normal")
+            self.save_button.configure(state="normal")
+        if allow_cancel:
+            self.cancel_button.configure(state="normal")
+        else:
+            self.cancel_button.configure(state="disabled")
+
     def _on_render_clicked(self) -> None:
         if self._job_thread and self._job_thread.is_alive():
             return
@@ -1161,9 +1366,8 @@ class StudioApp(ctk.CTk):
         self.settings = settings
         save_settings(self.paths.config_file, settings)
         self._cancel_flag.clear()
-        self.render_button.configure(state="disabled")
-        self.cancel_button.configure(state="normal")
-        self.status_label.configure(text="Rendering…", text_color=PALETTE["accent_alt"])
+        self._set_action_buttons(running=True, allow_cancel=True)
+        self.status_label.configure(text="Rendering full video…", text_color=PALETTE["accent_alt"])
         self.progress.set(0)
         self._append_log("Starting render…")
 
@@ -1201,26 +1405,30 @@ class StudioApp(ctk.CTk):
             RenderStage.DONE: 1.0,
         }
         self.progress.set(stage_weights.get(event.stage, self.progress.get()))
-        self.status_label.configure(text=event.message, text_color=PALETTE["text"])
+        # Show the current pipeline stage in the sidebar so the user
+        # always knows what is happening.
+        self.stage_label.configure(text=f"Stage: {event.stage.value} — {event.message}")
+        self.status_label.configure(text="", text_color=PALETTE["muted"])
 
     def _on_job_done(self, result) -> None:
         self.progress.set(1.0)
         self._append_log(f"Done. Saved to {result.output_path}.")
         self.status_label.configure(
-            text=f"Saved to {result.output_path.name}",
+            text=f"Done. Saved to {result.output_path.name} ({result.duration_seconds / 60:.1f} min).",
             text_color=PALETTE["success"],
         )
-        self.render_button.configure(state="normal")
-        self.cancel_button.configure(state="disabled")
-        self.nav_indicator.configure(text="Render complete")
+        self.last_output_label.configure(text=f"Latest video:\n{result.output_path}")
+        self.stage_label.configure(text="Idle. Configure another topic or hit Render again.")
+        self._set_action_buttons(running=False, allow_cancel=False)
 
     def _on_job_failed(self, exc: BaseException, tb: str) -> None:
         log.error("Render failed: {}\n{}", exc, tb)
         self._append_log(f"FAILED: {exc}")
+        if tb:
+            self._append_log(tb.strip().splitlines()[-1] if tb.strip() else "")
         self.status_label.configure(text=f"Failed: {exc}", text_color=PALETTE["danger"])
-        self.render_button.configure(state="normal")
-        self.cancel_button.configure(state="disabled")
-        self.nav_indicator.configure(text="Render failed")
+        self.stage_label.configure(text="Last run failed. See log for details.")
+        self._set_action_buttons(running=False, allow_cancel=False)
 
     def _on_cancel_clicked(self) -> None:
         if not (self._job_thread and self._job_thread.is_alive()):
