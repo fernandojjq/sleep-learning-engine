@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual env (when copied outside the repo)
+.venv/
+venv/
+
+# Studio runtime artefacts
+cache/
+output/
+logs/
+.sleeplens.toml
+*.mp4
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.png
+*.jpg
+*.jpeg
+!docs/*.png
+!docs/*.jpg
+!docs/*.jpeg
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.local
