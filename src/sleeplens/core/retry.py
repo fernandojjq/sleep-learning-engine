@@ -13,9 +13,9 @@ T = TypeVar("T")
 def call_with_backoff(
     fn: Callable[[], T],
     *,
-    attempts: int = 6,
-    base_delay: float = 0.6,
-    max_delay: float = 30.0,
+    attempts: int = 4,
+    base_delay: float = 0.3,
+    max_delay: float = 8.0,
     jitter: float = 0.25,
     retriable: Iterable[type[BaseException]] = (Exception,),
     on_retry: Callable[[int, BaseException, float], None] | None = None,

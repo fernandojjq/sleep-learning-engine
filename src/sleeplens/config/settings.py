@@ -132,8 +132,11 @@ class AppSettings:
     model: str = "deepseek-ai/deepseek-v4-flash"
     temperature: float = 0.7
     max_tokens: int = 4096
-    request_timeout: float = 120.0
-    max_retries: int = 6
+    # Per-request timeout. 180s accommodates big MoE models (e.g.
+    # DeepSeek V4 Flash 284B) on a cold start; the connector streams
+    # the response so the user sees live progress during this wait.
+    request_timeout: float = 180.0
+    max_retries: int = 4
     system_prompt: str = ""  # Empty = use the built-in default in script_writer.py.
 
     # TTS

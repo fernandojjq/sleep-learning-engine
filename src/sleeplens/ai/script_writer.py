@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,12 +94,17 @@ class ScriptWriter:
         language: str = "en",
         feedback: str | None = None,
         system_prompt: str | None = None,
+        on_chunk=None,
     ) -> Script:
         """Generate a fresh script for the given topic.
 
         If ``system_prompt`` is provided, it replaces the built-in default
         for this single call. Pass an empty string to fall back to the
         built-in ``SYSTEM_PROMPT``.
+
+        If ``on_chunk`` is provided, it is called with every text delta
+        as the model streams the response. This gives the caller live
+        progress during long generations.
         """
         if not topic.strip():
             raise ConfigError("Topic cannot be empty.")
@@ -126,6 +131,7 @@ class ScriptWriter:
             messages,
             temperature=0.7,
             max_tokens=max(1024, min(8192, target_word_count * 2)),
+            on_chunk=on_chunk,
         )
         paragraphs = _split_paragraphs(_strip_markdown(body))
         if not paragraphs:

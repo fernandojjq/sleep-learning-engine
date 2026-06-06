@@ -46,6 +46,7 @@ from .state import RenderEvent, RenderStage, RenderStatus
 log = get_logger()
 
 ProgressCallback = Callable[[RenderEvent], None]
+ChunkCallback = Callable[[str], None]
 
 
 @dataclass
@@ -100,6 +101,7 @@ def run_render(
     *,
     on_progress: ProgressCallback | None = None,
     cancel: Callable[[], bool] | None = None,
+    on_script_chunk: ChunkCallback | None = None,
 ) -> RenderResult:
     """Execute the full render pipeline and return a :class:`RenderResult`."""
     started = time.monotonic()
@@ -133,6 +135,7 @@ def run_render(
                 target_word_count=settings.target_word_count,
                 language=settings.language,
                 system_prompt=settings.system_prompt or None,
+                on_chunk=on_script_chunk,
             )
         finally:
             connector.close()

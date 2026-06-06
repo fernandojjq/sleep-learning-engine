@@ -1483,6 +1483,30 @@ class StudioApp(ctk.CTk):
 
         configure_logging(self.paths, level="INFO")
         connector = build_connector(settings)
+
+        # Forward every text delta to the GUI log box. We use a thread-
+        # safe queue to cross the worker -> UI thread boundary because
+        # CustomTkinter widgets must only be touched from the main
+        # thread.
+        import queue
+        chunk_q: "queue.Queue[str | None]" = queue.Queue()
+
+        def push_chunk(delta: str) -> None:
+            chunk_q.put(delta)
+
+        def flush_chunks_to_log() -> None:
+            try:
+                while True:
+                    delta = chunk_q.get_nowait()
+                    if delta is None:
+                        return
+                    self._append_log(delta)
+            except Exception:  # noqa: BLE001
+                pass
+
+        # Periodically drain the queue from the GUI thread.
+        self._start_chunk_pump(flush_chunks_to_log)
+
         try:
             writer = ScriptWriter(connector)
             script = writer.write(
@@ -1490,6 +1514,7 @@ class StudioApp(ctk.CTk):
                 target_word_count=settings.target_word_count,
                 language=settings.language,
                 system_prompt=settings.system_prompt or None,
+                on_chunk=push_chunk,
             )
             stem = "".join(c if c.isalnum() or c in " -_" else "" for c in script.title).strip()[:40] or "script"
             target = self.paths.output_dir / f"{stem}.txt"
@@ -1515,6 +1540,35 @@ class StudioApp(ctk.CTk):
                 connector.close()
             except Exception:  # noqa: BLE001
                 pass
+            self._stop_chunk_pump()
+
+    _chunk_pump_after_id: str | None = None
+
+    def _start_chunk_pump(self, flush) -> None:
+        """Start a periodic GUI-thread drain of streamed chunks.
+
+        Calling this from a background worker wires up a 60ms tick on
+        the main thread that pulls every queued chunk into the log box
+        via ``self._append_log``. Streaming gives the user live
+        feedback while a 284B MoE model boots up; without it the GUI
+        sits silently for 30-60 seconds and looks frozen.
+        """
+        def _tick() -> None:
+            flush()
+            # Re-schedule until the pump is explicitly stopped.
+            self._chunk_pump_after_id = self.after(60, _tick)
+
+        # Cancel any previous pump first.
+        self._stop_chunk_pump()
+        self._chunk_pump_after_id = self.after(60, _tick)
+
+    def _stop_chunk_pump(self) -> None:
+        if self._chunk_pump_after_id is not None:
+            try:
+                self.after_cancel(self._chunk_pump_after_id)
+            except Exception:  # noqa: BLE001
+                pass
+            self._chunk_pump_after_id = None
 
     def _on_script_done(self, path: Path, script) -> None:
         self.progress.set(0.25)

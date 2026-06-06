@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -99,8 +99,17 @@ class AIConnector:
         max_tokens: int = 2048,
         response_format: dict[str, str] | None = None,
         extra: dict[str, Any] | None = None,
+        on_chunk: Callable[[str], None] | None = None,
     ) -> str:
-        """Run a chat completion and return the assistant text content."""
+        """Run a chat completion and return the assistant text content.
+
+        If ``on_chunk`` is provided, the connector streams the response
+        and invokes the callback with every text delta as it arrives.
+        This gives the user live feedback during long generations
+        (large MoE models like DeepSeek V4 can take a while before
+        the first byte) and avoids the silent 10-minute waits the
+        fixed-timeout path used to produce.
+        """
         payload_messages = [m.to_openai() for m in messages]
         kwargs: dict[str, Any] = {
             "model": self.model,
@@ -112,9 +121,13 @@ class AIConnector:
             kwargs["response_format"] = response_format
         if extra:
             kwargs.update(extra)
+        if on_chunk is not None:
+            kwargs["stream"] = True
 
         def _invoke() -> str:
             try:
+                if on_chunk is not None:
+                    return self._stream_invocation(kwargs, on_chunk)
                 response = self._client.chat.completions.create(**kwargs)
             except AuthenticationError as exc:
                 raise ProviderError(
@@ -145,6 +158,38 @@ class AIConnector:
             retriable=RETRIABLE,
             on_retry=_on_retry,
         )
+
+    def _stream_invocation(
+        self, kwargs: dict[str, Any], on_chunk: Callable[[str], None]
+    ) -> str:
+        """Drive a streaming chat completion, forwarding each delta to ``on_chunk``.
+
+        Returns the full concatenated text when the stream ends. The
+        per-chunk timeout is the same as the global ``self.timeout``;
+        the difference is that a chunk arriving later than that closes
+        the stream and surfaces the timeout, so progress is visible
+        throughout the call instead of being one big black box.
+        """
+        assembled: list[str] = []
+        try:
+            stream = self._client.chat.completions.create(**kwargs)
+        except AuthenticationError as exc:
+            raise ProviderError(
+                f"Authentication failed: {exc}. Check your API key."
+            ) from exc
+        except APIStatusError as exc:
+            raise ProviderError(
+                f"Provider returned status {exc.status_code}: {exc.response.text[:400]}"
+            ) from exc
+
+        for event in stream:
+            if not event.choices:
+                continue
+            delta = event.choices[0].delta.content or ""
+            if delta:
+                assembled.append(delta)
+                on_chunk(delta)
+        return "".join(assembled).strip()
 
     # ------------------------------------------------------------- structured
     def chat_json(
