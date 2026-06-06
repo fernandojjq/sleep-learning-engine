@@ -678,7 +678,9 @@ class StudioApp(ctk.CTk):
             parent,
             text=(
                 "The system prompt tells the AI how to write your script. "
-                "Leave it empty to use the built-in default (calm, sleep-friendly narration). "
+                "Leave it empty to use the built-in default (audio-only teacher: "
+                "explains everything in words, no 'as you can see', ends with a recap "
+                "of key takeaways, no relaxation framing). "
                 "Edit it if you want a different tone, length, or persona."
             ),
             text_color=PALETTE["muted"],
