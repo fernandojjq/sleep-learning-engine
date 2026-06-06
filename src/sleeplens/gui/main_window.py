@@ -781,68 +781,150 @@ class StudioApp(ctk.CTk):
             parent, text="Text-to-speech", font=("Inter", 18, "bold"), text_color=PALETTE["text"]
         ).grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 8), sticky="w")
 
+        # TTS backend. Only Edge is wired up; other entries are
+        # reserved for future engines and show a clear note in the
+        # voice section when chosen.
         self.tts_backend_var = tk.StringVar(value=TTSBackend.EDGE.value)
-        ctk.CTkOptionMenu(
+        backend_labels = []
+        for b in TTSBackend:
+            if b is TTSBackend.EDGE:
+                backend_labels.append(b.value)
+            else:
+                backend_labels.append(f"{b.value} (coming soon)")
+        self.tts_backend_dropdown = ctk.CTkOptionMenu(
             parent,
-            values=[b.value for b in TTSBackend],
+            values=backend_labels,
             variable=self.tts_backend_var,
+            command=lambda _v: self._on_tts_backend_changed(),
             fg_color=PALETTE["panel_alt"],
             button_color=PALETTE["accent"],
             button_hover_color="#6D28D9",
             text_color=PALETTE["text"],
-        ).grid(row=1, column=0, padx=20, pady=4, sticky="ew")
+        )
+        self.tts_backend_dropdown.grid(row=1, column=0, padx=20, pady=4, sticky="ew")
 
-        # Voice: dropdown of curated voices (label shown, voice id stored).
-        # The last entry is "Custom..." which reveals a text field for
-        # arbitrary Edge voice ids.
-        self.tts_voice_label_var = tk.StringVar(value=VOICE_ID_TO_LABEL.get("en-US-AriaNeural", ""))
-        self._voice_options = _voice_options_with_groups() + ["Custom..."]
-        ctk.CTkLabel(parent, text="Voice", text_color=PALETTE["muted"]).grid(
-            row=2, column=0, padx=20, pady=(8, 0), sticky="w"
+        # The actual storage value is always one of the TTSBackend
+        # enum members. We strip the " (coming soon)" suffix from the
+        # displayed value before parsing.
+        self.tts_backend_value_var = tk.StringVar(value=TTSBackend.EDGE.value)
+
+        # ---- Voice selector (populated based on backend) ----
+        self.voice_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        self.voice_frame.grid(row=2, column=0, columnspan=2, padx=20, pady=(8, 0), sticky="ew")
+        self.voice_frame.grid_columnconfigure(0, weight=1)
+        self.voice_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(self.voice_frame, text="Voice", text_color=PALETTE["muted"]).grid(
+            row=0, column=0, padx=0, pady=(0, 4), sticky="w"
         )
-        ctk.CTkLabel(parent, text="Or type a custom voice id", text_color=PALETTE["muted"]).grid(
-            row=2, column=1, padx=20, pady=(8, 0), sticky="w"
+        ctk.CTkLabel(self.voice_frame, text="Or type a custom id", text_color=PALETTE["muted"]).grid(
+            row=0, column=1, padx=0, pady=(0, 4), sticky="w"
         )
-        ctk.CTkOptionMenu(
-            parent,
-            values=self._voice_options,
+
+        # Default voice catalog: all 46 Edge voices + "Custom...".
+        self._edge_voice_options = _voice_options_with_groups() + ["Custom..."]
+        self.tts_voice_label_var = tk.StringVar(
+            value=VOICE_ID_TO_LABEL.get("en-US-AriaNeural", "")
+        )
+        self.tts_voice_dropdown = ctk.CTkOptionMenu(
+            self.voice_frame,
+            values=self._edge_voice_options,
             variable=self.tts_voice_label_var,
             command=lambda _v: self._on_voice_changed(),
             fg_color=PALETTE["panel_alt"],
             button_color=PALETTE["accent"],
             button_hover_color="#6D28D9",
             text_color=PALETTE["text"],
-        ).grid(row=3, column=0, padx=20, pady=4, sticky="ew")
+        )
+        self.tts_voice_dropdown.grid(row=1, column=0, padx=4, pady=4, sticky="ew")
+
         self.custom_voice_var = tk.StringVar(value="en-US-AriaNeural")
         self.custom_voice_entry = ctk.CTkEntry(
-            parent,
+            self.voice_frame,
             textvariable=self.custom_voice_var,
             fg_color=PALETTE["panel_alt"],
             text_color=PALETTE["text"],
             border_color=PALETTE["border"],
             placeholder_text="custom Edge voice id (e.g. en-US-AriaNeural)",
         )
-        # Hidden by default; shown when the user picks "Custom...".
-        self.custom_voice_entry.grid(row=3, column=1, padx=20, pady=4, sticky="ew")
+        self.custom_voice_entry.grid(row=1, column=1, padx=4, pady=4, sticky="ew")
         self.custom_voice_entry.grid_remove()
+
         # The actual storage: the voice id.
         self.tts_voice_var = tk.StringVar(value="en-US-AriaNeural")
 
-        # Note that all voices are Edge TTS. The other TTS backends
-        # listed in the dropdown are placeholders for future engines.
-        ctk.CTkLabel(
+        # Voice note: explains which backend is active and what is supported.
+        self.voice_note = ctk.CTkLabel(
             parent,
             text=(
-                "All voices above are Edge TTS (free, no key). "
-                "Other TTS backends in the dropdown are placeholders for future engines."
+                "Active backend: Edge TTS (free, no key). "
+                "All 46 voices below are available."
             ),
             text_color=PALETTE["muted"],
             wraplength=720,
             justify="left",
-        ).grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 8), sticky="w")
+        )
+        self.voice_note.grid(row=3, column=0, columnspan=2, padx=20, pady=(0, 8), sticky="w")
+
+        # ---- Rate / pitch / ambient ----
+        tts_row = ctk.CTkFrame(parent, fg_color="transparent")
+        tts_row.grid(row=4, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
+        tts_row.grid_columnconfigure((0, 1), weight=1)
+        self.tts_rate_var = tk.StringVar(value="-5%")
+        ctk.CTkEntry(tts_row, textvariable=self.tts_rate_var, placeholder_text="rate (e.g. -10%)").grid(
+            row=0, column=0, padx=8, pady=4, sticky="ew"
+        )
+        self.tts_pitch_var = tk.StringVar(value="-2Hz")
+        ctk.CTkEntry(tts_row, textvariable=self.tts_pitch_var, placeholder_text="pitch (e.g. -2Hz)").grid(
+            row=0, column=1, padx=8, pady=4, sticky="ew"
+        )
+
+        ctk.CTkLabel(
+            parent,
+            text="Ambient bed",
+            font=("Inter", 18, "bold"),
+            text_color=PALETTE["text"],
+        ).grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 8), sticky="w")
+
+        self.ambient_mode_var = tk.StringVar(value=AmbientMode.AUTO.value)
+        ctk.CTkOptionMenu(
+            parent,
+            values=[m.value for m in AmbientMode],
+            variable=self.ambient_mode_var,
+            fg_color=PALETTE["panel_alt"],
+            button_color=PALETTE["accent"],
+            button_hover_color="#6D28D9",
+            text_color=PALETTE["text"],
+        ).grid(row=6, column=0, padx=20, pady=4, sticky="ew")
+
+        ambient_row = ctk.CTkFrame(parent, fg_color="transparent")
+        ambient_row.grid(row=6, column=1, padx=20, pady=4, sticky="ew")
+        ambient_row.grid_columnconfigure((0, 1), weight=1)
+        self.ambient_volume_var = tk.StringVar(value="0.18")
+        ctk.CTkEntry(
+            ambient_row, textvariable=self.ambient_volume_var, placeholder_text="bed volume (0-1)"
+        ).grid(row=0, column=0, padx=8, pady=4, sticky="ew")
+        self.ambient_duck_var = tk.StringVar(value="12")
+        ctk.CTkEntry(
+            ambient_row, textvariable=self.ambient_duck_var, placeholder_text="duck amount (dB)"
+        ).grid(row=0, column=1, padx=8, pady=4, sticky="ew")
+
+        ctk.CTkLabel(
+            parent,
+            text=(
+                "Drop royalty-free loops (rain, lofi, alpha waves...) into "
+                "assets/ambient/. The studio picks the best match for your script."
+            ),
+            text_color=PALETTE["muted"],
+            justify="left",
+            wraplength=720,
+        ).grid(row=7, column=0, columnspan=2, padx=20, pady=12, sticky="w")
+
+        # Initial state for the voice selector.
+        self._on_tts_backend_changed()
 
         tts_row = ctk.CTkFrame(parent, fg_color="transparent")
-        tts_row.grid(row=2, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
+        tts_row.grid(row=4, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
         tts_row.grid_columnconfigure((0, 1), weight=1)
         self.tts_rate_var = tk.StringVar(value="-5%")
         ctk.CTkEntry(tts_row, textvariable=self.tts_rate_var, placeholder_text="rate (e.g. -10%)").grid(
@@ -855,7 +937,7 @@ class StudioApp(ctk.CTk):
 
         ctk.CTkLabel(
             parent, text="Ambient bed", font=("Inter", 18, "bold"), text_color=PALETTE["text"]
-        ).grid(row=3, column=0, columnspan=2, padx=20, pady=(20, 8), sticky="w")
+        ).grid(row=5, column=0, columnspan=2, padx=20, pady=(20, 8), sticky="w")
 
         self.ambient_mode_var = tk.StringVar(value=AmbientMode.AUTO.value)
         ctk.CTkOptionMenu(
@@ -866,10 +948,10 @@ class StudioApp(ctk.CTk):
             button_color=PALETTE["accent"],
             button_hover_color="#6D28D9",
             text_color=PALETTE["text"],
-        ).grid(row=4, column=0, padx=20, pady=4, sticky="ew")
+        ).grid(row=6, column=0, padx=20, pady=4, sticky="ew")
 
         ambient_row = ctk.CTkFrame(parent, fg_color="transparent")
-        ambient_row.grid(row=4, column=1, padx=20, pady=4, sticky="ew")
+        ambient_row.grid(row=6, column=1, padx=20, pady=4, sticky="ew")
         ambient_row.grid_columnconfigure((0, 1), weight=1)
         self.ambient_volume_var = tk.StringVar(value="0.18")
         ctk.CTkEntry(ambient_row, textvariable=self.ambient_volume_var, placeholder_text="bed volume (0-1)").grid(
@@ -883,13 +965,13 @@ class StudioApp(ctk.CTk):
         ctk.CTkLabel(
             parent,
             text=(
-                "Drop royalty-free loops (rain, lofi, alpha waves…) into "
+                "Drop royalty-free loops (rain, lofi, alpha waves...) into "
                 "assets/ambient/. The studio picks the best match for your script."
             ),
             text_color=PALETTE["muted"],
             justify="left",
             wraplength=720,
-        ).grid(row=5, column=0, columnspan=2, padx=20, pady=12, sticky="w")
+        ).grid(row=7, column=0, columnspan=2, padx=20, pady=12, sticky="w")
 
     # ------------------------------------------------------------- tab: render
     def _build_render_tab(self, parent: ctk.CTkFrame) -> None:
@@ -1200,6 +1282,62 @@ class StudioApp(ctk.CTk):
         else:
             self.custom_voice_entry.grid_remove()
             self.tts_voice_var.set(VOICE_LABEL_TO_ID.get(label, label))
+
+    def _on_tts_backend_changed(self) -> None:
+        """React to a TTS backend switch: enable the right voices, or lock the panel.
+
+        Today only Edge TTS is wired up. The other backends are
+        reserved for future engines and are shown with a "(coming
+        soon)" suffix in the dropdown. When the user picks one of
+        them, we hide the voice selector and explain why; when they
+        switch back to Edge, we restore the curated Edge voice list.
+        """
+        display = self.tts_backend_var.get()
+        # Strip the "(coming soon)" marker that the dropdown shows, so
+        # the value we store matches the TTSBackend enum.
+        if " (coming soon)" in display:
+            backend_value = display.split(" (coming soon)")[0].strip()
+        else:
+            backend_value = display.strip()
+        self.tts_backend_value_var.set(backend_value)
+
+        if backend_value == TTSBackend.EDGE.value:
+            # Restore the Edge voice catalog.
+            try:
+                self.tts_voice_dropdown.configure(values=self._edge_voice_options, state="normal")
+            except Exception:  # noqa: BLE001
+                pass
+            self.custom_voice_entry.configure(state="normal")
+            # If the current label is not a known Edge voice (e.g. we
+            # previously hid everything), default back to Aria.
+            if self.tts_voice_label_var.get() not in self._edge_voice_options:
+                self.tts_voice_label_var.set(
+                    VOICE_ID_TO_LABEL.get("en-US-AriaNeural", self._edge_voice_options[0])
+                )
+            self.voice_note.configure(
+                text=(
+                    "Active backend: Edge TTS (free, no key). "
+                    "All 46 curated voices are available."
+                ),
+                text_color=PALETTE["muted"],
+            )
+        else:
+            # Lock the voice selector and explain why.
+            placeholder = "(voice selection disabled for this backend)"
+            try:
+                self.tts_voice_dropdown.configure(values=[placeholder], state="disabled")
+            except Exception:  # noqa: BLE001
+                pass
+            self.custom_voice_entry.configure(state="disabled")
+            self.tts_voice_label_var.set(placeholder)
+            self.voice_note.configure(
+                text=(
+                    f"Backend '{backend_value}' is reserved for a future release. "
+                    "Switch back to 'edge' to pick a voice. The render will use "
+                    "the default voice (en-US-AriaNeural) until then."
+                ),
+                text_color=PALETTE["warning"],
+            )
 
     def _toggle_advanced(self) -> None:
         if self.advanced_visible.get():

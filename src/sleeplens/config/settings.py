@@ -185,6 +185,24 @@ def load_settings(path: Path) -> AppSettings:
             setattr(settings, key, value)
         else:
             settings.extra[key] = value
+    # TOML round-trip turns StrEnum members into plain strings. Cast
+    # the known enum fields back to their enum type so callers can
+    # keep using ``settings.tts_backend.value`` etc.
+    if isinstance(settings.tts_backend, str):
+        try:
+            settings.tts_backend = TTSBackend(settings.tts_backend)
+        except ValueError:
+            settings.tts_backend = TTSBackend.EDGE
+    if isinstance(settings.ambient_mode, str):
+        try:
+            settings.ambient_mode = AmbientMode(settings.ambient_mode)
+        except ValueError:
+            settings.ambient_mode = AmbientMode.AUTO
+    if isinstance(settings.output_preset, str):
+        try:
+            settings.output_preset = OutputPreset(settings.output_preset)
+        except ValueError:
+            settings.output_preset = OutputPreset.SLEEP_720P
     return settings
 
 
