@@ -25,10 +25,11 @@ local media server. Zero platform lock-in, runs free or fully local.
   video into the field. The studio loops the clip to match the runtime.
   If nothing is provided, a dark, sleep-friendly backdrop is generated
   procedurally with no network call.
-- **Acoustic ambience mixer.** Drop royalty-free loops into
-  `assets/ambient/`. The studio matches keywords from the script
-  (rain, ocean, alpha, lofi, fire, brown noise, ...) and ducks the bed
-  whenever the voice is active.
+- **Acoustic ambience mixer.** The studio scans `assets/ambient/` for
+  royalty-free loops, matches keywords from the script (rain, ocean,
+  alpha, lofi, fire, brown noise, ...) and ducks the bed whenever
+  the voice is active. A bundled generator script can synthesise 14
+  procedural tracks locally if you do not have any.
 - **Frame-accurate progress bar.** A clean #00FF00 bar painted with the
   `geq` filter, advanced by the current frame number. No drift, no
   precomputation, works on multi-hour renders.
@@ -252,6 +253,27 @@ python run.py providers
 
 The JSON output is one line, easy to wire into CI.
 
+## Bundled ambient library
+
+The studio does **not** ship audio files. To populate the ambient
+library, run the generator:
+
+```bash
+uv run python scripts/generate_ambient.py
+```
+
+This produces 14 procedurally-synthesised beds (rain, ocean, forest,
+fire, wind, river, brown noise, pink noise, alpha binaural, alpha
+pulse, lofi, night crickets, cafe murmur) into `assets/ambient/`,
+each 60 seconds of stereo, designed to loop cleanly, and tagged with
+the keywords the scanner looks for.
+
+Why not commit them? See `assets/ambient/README.md`. The short
+version: synthetic audio can still match third-party fingerprinting
+systems, and shipping the generated files in a public repo would
+expose downstream users to false-positive copyright claims on the
+videos they produce.
+
 ## Repository layout
 
 ```
@@ -268,7 +290,7 @@ sleeplens/
 ├── tests/                  # pytest suite (15 tests)
 ├── scripts/                # one-shot smoke render
 ├── assets/
-│   ├── ambient/            # drop your loops here
+│   ├── ambient/            # generated locally, not committed (see assets/ambient/README.md)
 │   └── visuals/            # drop your backgrounds here
 ├── cache/                  # bundled ffmpeg, temp files
 ├── output/                 # final videos

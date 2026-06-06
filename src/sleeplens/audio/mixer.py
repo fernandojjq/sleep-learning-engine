@@ -161,7 +161,7 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
         f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{spec.target_duration:.3f},"
         f"volume={spec.ambient_volume},aresample=48000[b];"
         f"[b][v]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=1500:"
-        f"makeup=0[ducked];"
+        f"makeup=1[ducked];"
         f"[v][ducked]amix=inputs=2:duration=first:dropout_transition=0,"
         f"alimiter=limit=0.95,aresample=48000[aout]"
     )
@@ -192,7 +192,11 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
     log.debug("ffmpeg mix command: {}", " ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        log.error("ffmpeg mix failed: {}", result.stderr[-2000:])
+        # Skip the noisy version banner; show only the meaningful tail.
+        tail = "\n".join(
+            line for line in result.stderr.splitlines() if "configuration" not in line
+        )[-2000:]
+        log.error("ffmpeg mix failed: {}", tail)
         raise SleeplensError("Failed to mix voice and ambient bed.")
     return spec.output_path
 

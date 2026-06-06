@@ -24,17 +24,20 @@ output/
 logs/
 .sleeplens.toml
 *.mp4
-*.wav
 *.mp3
 *.m4a
 *.flac
-*.ogg
 *.png
 *.jpg
 *.jpeg
 !docs/*.png
 !docs/*.jpg
 !docs/*.jpeg
+
+# Ambient beds: generated locally, not committed.
+assets/ambient/*
+!assets/ambient/.gitkeep
+!assets/ambient/README.md
 
 # Editor / OS
 .idea/
