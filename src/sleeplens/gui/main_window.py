@@ -147,34 +147,54 @@ def _voice_options_with_groups() -> list[str]:
 
 # ------------------------------------------------------ model catalog per provider
 
-# Curated chat-completions models per provider, refreshed June 2026.
-# The first entry is the default; the last entry is "Custom..." which
-# surfaces a text field where the user can type any model id.
+# Curated chat-completions models per provider, REFRESHED FROM THE
+# REAL /v1/models RESPONSE on 2026-06-06. The first entry is the
+# default; the last entry is "Custom..." which surfaces a text
+# field where the user can type any model id.
 MODEL_CATALOG: dict[str, list[str]] = {
+    # Verified against https://integrate.api.nvidia.com/v1/models
     "nvidia_nim_deepseek": [
-        # DeepSeek family.
-        "deepseek-ai/deepseek-v4",
-        "deepseek-ai/deepseek-v3.2",
-        "deepseek-ai/deepseek-r1",
+        # DeepSeek family (the real ids as advertised by the API).
+        "deepseek-ai/deepseek-v4-flash",
+        "deepseek-ai/deepseek-v4-pro",
+        "deepseek-ai/deepseek-coder-6.7b-instruct",
         # Meta Llama family.
+        "meta/llama-4-maverick-17b-128e-instruct",
         "meta/llama-3.3-70b-instruct",
         "meta/llama-3.1-70b-instruct",
         "meta/llama-3.1-8b-instruct",
+        "meta/llama-3.2-11b-vision-instruct",
+        "meta/llama-3.2-90b-vision-instruct",
         # NVIDIA Nemotron family.
-        "nvidia/nemotron-3-ultra-550b-a55b-nvfp4",
+        "nvidia/nemotron-3-ultra-550b-a55b",
+        "nvidia/nemotron-3-super-120b-a12b",
+        "nvidia/nemotron-3-nano-30b-a3b",
         "nvidia/nemotron-4-340b-instruct",
         "nvidia/llama-3.3-nemotron-super-49b-v1",
         "nvidia/llama-3.1-nemotron-70b-instruct",
+        "nvidia/llama-3.1-nemotron-ultra-253b-v1",
         # Mistral family.
-        "mistralai/mistral-large-2",
-        "mistralai/mistral-small-3",
-        "mistralai/mixtral-8x22b-instruct",
+        "mistralai/mistral-large-3-675b-instruct-2512",
+        "mistralai/mistral-small-4-119b-2603",
+        "mistralai/mistral-large-2-instruct",
+        "mistralai/mistral-nemotron",
+        "mistralai/mixtral-8x22b-v0.1",
         # Qwen family.
-        "qwen/qwen3-235b-a22b",
-        "qwen/qwen2.5-72b-instruct",
-        "qwen/qwq-32b-preview",
+        "qwen/qwen3.5-397b-a17b",
+        "qwen/qwen3.5-122b-a10b",
+        "qwen/qwen3-coder-480b-a35b-instruct",
+        "qwen/qwen3-next-80b-a3b-instruct",
         # Google Gemma.
-        "google/gemma-3-27b-it",
+        "google/gemma-4-31b-it",
+        "google/gemma-3-12b-it",
+        # Microsoft Phi.
+        "microsoft/phi-4-mini-instruct",
+        "microsoft/phi-3.5-moe-instruct",
+        # OpenAI open-source.
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        # Moonshot Kimi.
+        "moonshotai/kimi-k2.6",
         "Custom...",
     ],
     "openai_gpt": [

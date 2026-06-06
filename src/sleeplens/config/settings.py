@@ -125,7 +125,11 @@ class AppSettings:
     provider_id: str = "nvidia_nim_deepseek"
     base_url: str = "https://integrate.api.nvidia.com/v1"
     api_key: str = ""
-    model: str = "deepseek-ai/deepseek-v4"
+    # Default to a real model id (verified against
+    # https://integrate.api.nvidia.com/v1/models on 2026-06-06).
+    # The "v4" prefix alone does not exist; the actual ids are
+    # "deepseek-ai/deepseek-v4-flash" and "deepseek-ai/deepseek-v4-pro".
+    model: str = "deepseek-ai/deepseek-v4-flash"
     temperature: float = 0.7
     max_tokens: int = 4096
     request_timeout: float = 120.0
