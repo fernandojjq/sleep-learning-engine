@@ -64,11 +64,11 @@ Ajustes que importan:
 | Pestaña | Campo | Valor recomendado | Por qué |
 | ------- | ----- | ----------------- | ------- |
 | **Topic** | Pause between paragraphs | `1.8` s | Pausa cómoda para absorber |
-| **Topic** | Language | `es` | Para que las voces Edge en español matcheen |
-| **Audio** | TTS Voice | `es-ES-ElviraNeural` o `es-MX-DaliaNeural` | Voces suaves en español, gratis |
+| **Topic** | Language | `en` | English |
+| **Audio** | TTS Voice | `en-US-AriaNeural` (ver sección "Voces en inglés" abajo) | Warm, conversational, top pick para sleep |
 | **Audio** | TTS Rate | `-10%` | Más lento = más calmado |
 | **Audio** | TTS Pitch | `-2Hz` | Un poco más grave |
-| **Audio** | Ambient bed mode | `auto` | Matchea por keyword (lluvia, océano, etc.) |
+| **Audio** | Ambient bed mode | `auto` | Matchea por keyword (rain, ocean, lofi, etc.) |
 | **Audio** | Bed volume | `0.18` | Ambiente presente pero no tapa la voz |
 | **Audio** | Duck amount | `12` dB | Voz clarísima, ambient baja cuando hablás |
 | **Render** | Output preset | `sleep_720p` | Suficiente para YouTube y podcast |
@@ -134,7 +134,7 @@ cuánto tardó:
 
 | Si querés... | Andá a | Tocá |
 | ------------- | ------ | ---- |
-| Voz diferente | Audio tab | Cambiá el campo **Voice** |
+| Voz diferente | Audio tab | Cambiá el campo **Voice** (ver lista abajo) |
 | Otro ambient (lluvia → océano) | Audio tab | Cambiá el campo **Ambient bed mode** a `keyword` o `random` |
 | Sin ambient (solo voz) | Audio tab | **Ambient bed mode** = `disabled` |
 | Más pausas | Topic tab | Subí **Pause between paragraphs** a `2.5` o `3` |
@@ -142,6 +142,86 @@ cuánto tardó:
 | Fondo con imagen/video | Visuals tab | Pegá la ruta o arrastrá el archivo |
 | Resolución 1080p | Render tab | **Output preset** = `sleep_1080p` |
 | Solo audio MP3 | Render tab | **Output preset** = `audio_only` |
+
+---
+
+## Voces en inglés (curadas para sleep)
+
+Edge TTS tiene cientos de voces. Acá está la lista curada de las
+17 que mejor suenan para contenido de sleep-learning en inglés.
+Todas son gratis, sin key, sin quota.
+
+### Cómo elegir
+
+Ya tenés 17 muestras de audio (10-17 segundos cada una) en
+`output/voice-previews/`. Abrí esa carpeta en el explorador y
+reproducí los MP3 hasta dar con la que más te guste. Después
+poné el id exacto (ej. `en-US-AriaNeural`) en el campo **Voice**
+de la pestaña Audio.
+
+Si querés regenerarlas o probar una voz nueva:
+
+```powershell
+# Regenerar todas
+uv run python scripts/voice_preview.py
+
+# Probar una sola voz
+uv run python scripts/voice_preview.py --voice en-US-AriaNeural
+
+# Probar con tu propio texto
+uv run python scripts/voice_preview.py --text "This is a test of how this voice sounds for sleep content."
+```
+
+### Las 17 voces (verificadas funcionando)
+
+**Mujeres, US English (5):**
+| Voice | Vibe | Cuándo usarla |
+| ----- | ---- | ------------- |
+| `en-US-AriaNeural` | Cálida, conversacional | **Top pick**. La más natural para narración sleep |
+| `en-US-EmmaNeural` | Suave, ligeramente susurrada | Voiceover tipo meditación guiada |
+| `en-US-JennyNeural` | Amigable, clara, algo enérgica | Cuando el tema requiere más vitalidad |
+| `en-US-MichelleNeural` | Joven, brillante | Audiolibros juveniles, contenido moderno |
+| `en-US-RogerNeural` | (hombre) Mayor, digno | Narración histórica, biografías |
+
+**Hombres, US English (5):**
+| Voice | Vibe | Cuándo usarla |
+| ----- | ---- | ------------- |
+| `en-US-GuyNeural` | Casual, cálido | Narración relajada, podcasts |
+| `en-US-AndrewNeural` | Maduro, audiobook-style | Cursos largos, explicaciones densas |
+| `en-US-BrianNeural` | Profunda, resonante | **Top pick masculino**. Voz de late-night radio |
+| `en-US-RogerNeural` | (ya arriba) | |
+| `en-US-AndrewNeural` | (ya arriba) | |
+
+**Mujeres y hombres, UK English (4):**
+| Voice | Vibe | Cuándo usarla |
+| ----- | ---- | ------------- |
+| `en-GB-SoniaNeural` | Británica madura, pulida | Contenido refinado, literatura inglesa |
+| `en-GB-RyanNeural` | Británico cálido, audiobook | Temas históricos, biografías |
+| `en-GB-LibbyNeural` | Británica joven | Temas modernos, lifestyle |
+| `en-GB-ThomasNeural` | Británico maduro, profundo | Historia militar, exploración |
+
+**Otros acentos (3):**
+| Voice | Vibe | Cuándo usarla |
+| ----- | ---- | ------------- |
+| `en-AU-NatashaNeural` | Australiana calmada | Temas del hemisferio sur, naturaleza |
+| `en-AU-WilliamNeural` | Australiano maduro | Outback, expediciones |
+| `en-CA-ClaraNeural` | Canadiense calmada | Neutral, contenido general |
+| `en-IN-NeerjaNeural` | India suave | Yoga, meditación, hinduismo/budismo |
+| `en-IE-EmilyNeural` | Irlandesa suave | Folklore, leyendas, poesía |
+
+### Ajustes finos por voz
+
+Todas estas muestras están grabadas con **rate `-10%`** y **pitch `-2Hz`**.
+Si querés afinar más:
+
+| Voice | Rate sugerido | Pitch sugerido | Por qué |
+| ----- | ------------- | -------------- | ------- |
+| `en-US-AriaNeural` | `-10%` | `-2Hz` | Default, ya cálido |
+| `en-US-BrianNeural` | `-8%` | `-3Hz` | Ya es grave, no exagerar |
+| `en-US-EmmaNeural` | `-15%` | `0Hz` | Ya es susurrada, no pitch down |
+| `en-US-AndrewNeural` | `-12%` | `-2Hz` | Audiobook pace |
+| `en-GB-RyanNeural` | `-10%` | `-2Hz` | Default |
+| `en-GB-SoniaNeural` | `-8%` | `-1Hz` | Ya es muy pulida, no bajar mucho |
 
 ---
 
@@ -180,6 +260,7 @@ D:\proyectos\Proyectos Github\sleeplens\
   cache\ffmpeg.exe      <- binario ffmpeg
   assets\ambient\       <- 14 pistas procedurales (rain, lofi, etc.)
   output\               <- donde caen tus MP4 finales
+  output\voice-previews <- 17 muestras de voz para elegir tu favorita
   logs\                 <- log rotado para debug
   docs\USER_GUIDE.md    <- tutorial genérico para nuevos usuarios
   docs\MI_TUTORIAL.md   <- este archivo
