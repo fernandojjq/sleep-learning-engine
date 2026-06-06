@@ -1124,6 +1124,7 @@ class StudioApp(ctk.CTk):
         self.custom_model_var.set(s.model)
         self._on_provider_changed(PROVIDER_PRESETS[preset_idx].label)
         self.base_url_var.set(s.base_url)
+        self.api_key_var.set(s.api_key)
         self.temperature_var.set(str(s.temperature))
         self.max_tokens_var.set(str(s.max_tokens))
         self.max_retries_var.set(str(s.max_retries))
@@ -1433,11 +1434,19 @@ class StudioApp(ctk.CTk):
             return
         self.settings = settings
         save_settings(self.paths.config_file, settings)
+        # Tell the user exactly what was persisted, and whether the
+        # API key is in fact present. Empty keys are a common source
+        # of 'why is nothing working' confusion.
+        key_state = "set" if settings.api_key.strip() else "EMPTY (rendering will fail)"
         self.status_label.configure(
-            text="Settings saved (API key, model, voice, etc. remembered for next time).",
-            text_color=PALETTE["success"],
+            text=(
+                f"Settings saved. Provider: {settings.provider_id}, "
+                f"Model: {settings.model}, API key: {key_state}. "
+                f"Path: {self.paths.config_file}"
+            ),
+            text_color=PALETTE["success"] if settings.api_key.strip() else PALETTE["warning"],
         )
-        self.stage_label.configure(text=f"Saved at {self.paths.config_file}")
+        self.stage_label.configure(text="Idle. Open the app again to confirm the key loaded.")
 
     def _on_generate_script_only(self) -> None:
         """Run just the script-generation step and save the result to a .txt."""

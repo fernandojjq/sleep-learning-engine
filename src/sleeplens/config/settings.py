@@ -220,6 +220,7 @@ def save_settings(path: Path, settings: AppSettings) -> None:
     payload: dict[str, Any] = {
         "provider_id": settings.provider_id,
         "base_url": settings.base_url,
+        "api_key": settings.api_key,
         "model": settings.model,
         "temperature": settings.temperature,
         "max_tokens": settings.max_tokens,
