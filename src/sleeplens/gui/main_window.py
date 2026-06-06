@@ -593,18 +593,45 @@ class StudioApp(ctk.CTk):
             fg_color=PALETTE["panel_alt"],
             text_color=PALETTE["text"],
             border_color=PALETTE["border"],
-            placeholder_text="or type any model id here",
+            placeholder_text="or type any model id here (see hint below)",
         )
         self.custom_model_entry.grid(row=5, column=1, padx=20, pady=4, sticky="ew")
         self.custom_model_entry.bind("<FocusOut>", lambda _e: self._on_model_dropdown_changed())
 
+        # Where to find model ids. We point users at two sources:
+        #   1. The "Load model list" button below, which fetches from
+        #      the provider's /v1/models endpoint and merges the result
+        #      into the dropdown.
+        #   2. The provider's own catalog page, listed per provider.
+        # This hint stays visible at all times so nobody wonders.
+        self.model_hint_label = ctk.CTkLabel(
+            parent,
+            text=(
+                "Where to find a custom model id:\n"
+                "  1. Click 'Load model list from provider' (fetches /v1/models and\n"
+                "     merges it into the dropdown above).\n"
+                "  2. Or grab one from the provider's catalog:\n"
+                "       NVIDIA NIM  -> https://build.nvidia.com/models\n"
+                "       OpenAI      -> https://platform.openai.com/docs/models\n"
+                "       Anthropic   -> https://docs.anthropic.com/en/docs/about-claude/models\n"
+                "       Ollama      -> https://ollama.com/library (use the tag, e.g. llama3.1)\n"
+                "       LM Studio   -> whatever the local server exposes"
+            ),
+            text_color=PALETTE["muted"],
+            wraplength=700,
+            justify="left",
+        )
+        self.model_hint_label.grid(
+            row=6, column=0, columnspan=2, padx=20, pady=(4, 8), sticky="w"
+        )
+
         models_row = ctk.CTkFrame(parent, fg_color="transparent")
-        models_row.grid(row=6, column=0, columnspan=2, padx=20, pady=(4, 12), sticky="ew")
+        models_row.grid(row=7, column=0, columnspan=2, padx=20, pady=(4, 12), sticky="ew")
         ctk.CTkButton(
             models_row,
             text="Load model list from provider",
-            fg_color=PALETTE["panel_alt"],
-            hover_color=PALETTE["border"],
+            fg_color=PALETTE["accent"],
+            hover_color="#6D28D9",
             text_color=PALETTE["text"],
             command=self._on_load_models,
         ).pack(side="left")
@@ -1250,9 +1277,17 @@ class StudioApp(ctk.CTk):
             # Some CTk versions don't expose configure on OptionMenu.
             pass
 
-        display = ", ".join(models[:5]) + ("..." if len(models) > 5 else "")
+        # Make the success feedback very visible: green text, larger
+        # weight, and a one-line preview of the first few models so the
+        # user knows exactly what was loaded.
+        preview = ", ".join(models[:6]) + ("..." if len(models) > 6 else "")
         self.models_label.configure(
-            text=f"Loaded {len(models)} from provider ({display}). Pick one in the dropdown above."
+            text=f"Loaded {len(models)} models from provider: {preview}",
+            text_color=PALETTE["success"],
+        )
+        self.status_label.configure(
+            text=f"Model list refreshed: {len(models)} models now available in the dropdown.",
+            text_color=PALETTE["success"],
         )
 
         # If the current value is not in the merged list, leave it; the
