@@ -1475,12 +1475,21 @@ class StudioApp(ctk.CTk):
             target = self.paths.output_dir / f"{stem}.txt"
             target.parent.mkdir(parents=True, exist_ok=True)
             script.to_file(target)
-            self.after(0, lambda: self._on_script_done(target, script))
+            # Capture the locals as default args so the closure binds
+            # the value, not the name. (otherwise the lambda runs after
+            # the except block has already exited and ``target`` /
+            # ``script`` are out of scope).
+            self.after(0, lambda t=target, s=script: self._on_script_done(t, s))
         except (ProviderError, SleeplensError) as exc:
-            self.after(0, lambda: self._on_job_failed(exc, ""))
+            # Friendly hint for the 404 that the user actually hit:
+            # the default model id is rejected by the provider, usually
+            # because (a) the API key is wrong, or (b) the model id was
+            # renamed. We surface both possibilities.
+            friendly = self._explain_provider_error(exc, settings)
+            self.after(0, lambda msg=friendly: self._on_job_failed_simple(msg))
         except Exception as exc:  # noqa: BLE001
             tb = traceback.format_exc()
-            self.after(0, lambda: self._on_job_failed(exc, tb))
+            self.after(0, lambda e=exc, t=tb: self._on_job_failed(e, t))
         finally:
             try:
                 connector.close()
@@ -1557,10 +1566,42 @@ class StudioApp(ctk.CTk):
                 on_progress=self._on_job_event,
                 cancel=self._cancel_flag.is_set,
             )
-            self.after(0, lambda: self._on_job_done(result))
+            # Bind ``result`` as a default arg so the closure captures
+            # the value (not the name) and survives until after() fires.
+            self.after(0, lambda r=result: self._on_job_done(r))
         except Exception as exc:  # noqa: BLE001
             tb = traceback.format_exc()
-            self.after(0, lambda: self._on_job_failed(exc, tb))
+            self.after(0, lambda e=exc, t=tb: self._on_job_failed(e, t))
+
+    def _explain_provider_error(self, exc: BaseException, settings: AppSettings) -> str:
+        """Turn a provider exception into a user-actionable hint.
+
+        The most common failure modes (in order):
+          1. No API key set (we still try; provider returns 401 or 404).
+          2. Model id was renamed by the provider (404 with body).
+          3. Network / DNS / firewall.
+        """
+        msg = str(exc)
+        preset = next((p for p in PROVIDER_PRESETS if p.id == settings.provider_id), None)
+        provider_label = preset.label if preset else settings.provider_id
+        if "404" in msg:
+            return (
+                f"Provider '{provider_label}' returned 404 for model "
+                f"'{settings.model}'. "
+                "Two most common causes:\n"
+                "  - You have not set an API key in the Provider tab.\n"
+                "  - The model id was renamed by the provider.\n"
+                "Try clicking 'Load model list from provider' to pick a "
+                "currently-available model, or check the catalog URL "
+                "listed in the Model row hint."
+            )
+        if "401" in msg or "403" in msg or "Authentication" in msg:
+            return (
+                f"Provider '{provider_label}' rejected the API key. "
+                "Open the Provider tab and re-paste your key, or check "
+                "that it has the right scopes."
+            )
+        return f"Provider error: {msg}"
 
     def _on_job_event(self, event: RenderEvent) -> None:
         self.after(0, lambda: self._apply_event(event))
@@ -1599,7 +1640,25 @@ class StudioApp(ctk.CTk):
         self._append_log(f"FAILED: {exc}")
         if tb:
             self._append_log(tb.strip().splitlines()[-1] if tb.strip() else "")
-        self.status_label.configure(text=f"Failed: {exc}", text_color=PALETTE["danger"])
+        # Use the friendlier explanation when available, but fall back
+        # to the raw exception text if anything goes wrong here.
+        try:
+            friendly = self._explain_provider_error(exc, self.settings)
+        except Exception:  # noqa: BLE001
+            friendly = f"Failed: {exc}"
+        self.status_label.configure(text=friendly, text_color=PALETTE["danger"])
+        self.stage_label.configure(text="Last run failed. See log for details.")
+        self._set_action_buttons(running=False, allow_cancel=False)
+
+    def _on_job_failed_simple(self, message: str) -> None:
+        """Like _on_job_failed but takes a pre-built message string.
+
+        Used by the script-only path when we already have a user-facing
+        explanation that does not need to be re-interpreted.
+        """
+        log.error("Job failed: {}", message)
+        self._append_log(f"FAILED: {message}")
+        self.status_label.configure(text=message, text_color=PALETTE["danger"])
         self.stage_label.configure(text="Last run failed. See log for details.")
         self._set_action_buttons(running=False, allow_cancel=False)
 
