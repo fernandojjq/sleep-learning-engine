@@ -83,14 +83,17 @@ def _ffprobe_input_i(ffmpeg: str, path: Path) -> float:
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg loudnorm probe failed for {path}: {result.stderr[-500:]}")
-    # ffmpeg prints the JSON to stderr at the end of the run.
+    # ffmpeg prints the JSON to stderr. The banner is stripped with
+    # -hide_banner, but a "summary" line can still come after the JSON,
+    # so use raw_decode to consume one JSON object and ignore the rest.
     txt = result.stderr
-    start = txt.rfind("{")
+    start = txt.find("{")
     if start == -1:
         raise RuntimeError(f"No loudnorm JSON in ffmpeg output for {path}")
     import json
     try:
-        return float(json.loads(txt[start:])["input_i"])
+        obj, _ = json.JSONDecoder().raw_decode(txt, start)
+        return float(obj["input_i"])
     except (json.JSONDecodeError, KeyError, ValueError) as exc:
         raise RuntimeError(f"Bad loudnorm JSON for {path}: {exc}") from exc
 
@@ -117,6 +120,18 @@ def _normalise_file(
 
     # The two-pass form: pass 1 measures (already done above), pass 2
     # applies the linear gain with the measured values plugged in.
+    # ffmpeg refuses to read and write the same path in one command
+    # ("Output same as Input #0 - exiting"), so we write to a sibling
+    # temp file with the SAME extension (so ffmpeg infers the right
+    # muxer) and atomically replace the original on success.
+    import tempfile
+    tmp_dir = path.parent
+    tmp_fd, tmp_name = tempfile.mkstemp(
+        prefix=".norm.", suffix=path.suffix, dir=str(tmp_dir),
+    )
+    import os as _os
+    _os.close(tmp_fd)
+    tmp = Path(tmp_name)
     pass2 = [
         ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", str(path),
         "-af", (
@@ -126,12 +141,22 @@ def _normalise_file(
         ),
         "-ar", "48000",  # match the generator's 48 kHz target
         "-ac", "2",       # stereo
-        str(path),
+        "-c:a", "libmp3lame" if path.suffix.lower() == ".mp3" else "auto",
+        "-f", path.suffix.lstrip(".").lower() or "mp3",  # force muxer from extension
+        str(tmp),
     ]
     result = subprocess.run(pass2, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
+        # Clean up the partial temp file before bailing.
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
         print(f"    FAIL: {result.stderr[-300:]}", file=sys.stderr)
         return None
+    # Atomically replace the original with the normalized file.
+    shutil.move(str(tmp), str(path))
     return (in_lufs, target_lufs)
 
 
