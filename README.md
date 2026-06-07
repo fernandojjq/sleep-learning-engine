@@ -5,8 +5,8 @@ generates calm narration, mixes in a soft ambient bed, paints a frame-accurate
 progress bar, and writes a clean MP4 ready for YouTube, a podcast feed, or a
 local media server. Zero platform lock-in, runs free or fully local.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleep_learning_engine/blob/main/docs/cloud/low_ram_render.ipynb)
-[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/fernandojjq/sleep_learning_engine/main/docs/cloud/kaggle_render.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleep-learning-engine/blob/main/docs/cloud/low_ram_render.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/fernandojjq/sleep-learning-engine/main/docs/cloud/kaggle_render.ipynb)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![uv](https://img.shields.io/badge/managed%20by-uv-purple.svg)](https://docs.astral.sh/uv/)
@@ -62,7 +62,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Then clone and launch:
 
 ```bash
-git clone https://github.com/fernandojjq/sleep_learning_engine.git
+git clone https://github.com/fernandojjq/sleep-learning-engine.git
 cd sleep_learning_engine
 
 # Creates .venv and installs every dependency locked in uv.lock.
