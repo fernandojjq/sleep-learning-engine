@@ -170,37 +170,51 @@ def _normalise_color(color: str) -> str:
 
 def _progress_filter(
     *,
+    bg_vf: str,
     width: int,
     height: int,
     bar_height: int,
     position: str,
     color_hex: str,
-    frame_count: int,
+    total_seconds: float,
+    fps: int,
 ) -> str:
-    """Build the ``geq`` filter that paints a frame-synced progress bar.
+    """Compose the full video filtergraph: background + a time-synced bar.
 
-    drawbox's expression scope does not include the frame number, so the
-    bar width cannot be animated per-frame with drawbox alone. ``geq`` does
-    expose ``N`` (current frame index) and the pixel-level coordinates
-    ``X`` / ``Y`` plus image dimensions ``W`` / ``H``, which is exactly
-    what a per-pixel progress bar needs.
+    The progress bar is painted with ``geq`` on a *tiny fixed-size strip*
+    (``width`` x ``bar_height``), then overlaid onto the background.
+
+    The previous version ran ``geq`` per-pixel over the ENTIRE 720p/1080p
+    frame for every one of ~10k frames. ``geq`` evaluates its expression once
+    per output pixel, single-threaded, on the CPU (NVENC never touches the
+    filter graph), so a 7-minute 1080p render spent ~25-40 min just in the
+    progress filter and looked completely frozen. Restricting geq to the
+    ~1280x6 bar strip is ~30x faster and pixel-identical on screen.
+
+    geq exposes ``T`` (timestamp) and per-pixel ``X`` / ``W``; the strip is
+    the fill colour where ``X < W*T/total`` and a dark track otherwise.
+    (drawbox cannot do this: its x/y/w/h expressions only expose geometric
+    constants - no time or frame index - which is the whole reason geq is
+    needed for an animated width.)
     """
     y_top = (height - bar_height - 4) if position == "bottom" else 4
-    y_bot = y_top + bar_height
-    n = max(1, int(frame_count))
-    r, g, b = _hex_to_rgb(color_hex)
-    # Order matters: the dark track first, then the green fill on top.
-    # We use geq to paint the green strip where X < W*N/n, only on the bar
-    # rows, so the rest of the frame is left untouched.
+    dur = max(0.001, float(total_seconds))
+    h = color_hex.lower().lstrip("#")
+    if h.startswith("0x"):
+        h = h[2:]
+    h = h[-6:].rjust(6, "0")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    thr = f"W*T/{dur:.3f}"  # progress fraction, in pixels, at time T
+    strip = (
+        f"color=c=black:s={width}x{bar_height}:r={fps}:d={dur:.3f},format=gbrp,"
+        f"geq=r='if(lt(X\\,{thr})\\,{r}\\,30)':"
+        f"g='if(lt(X\\,{thr})\\,{g}\\,30)':"
+        f"b='if(lt(X\\,{thr})\\,{b}\\,30)'[bar]"
+    )
     return (
-        f"format=rgb24,"
-        f"drawbox=x=0:y={y_top}:w=iw:h={bar_height}:color=black@0.55:t=fill,"
-        f"geq=r='if(between(Y\\,{y_top}\\,{y_bot})\\,"
-        f"if(lt(X\\,W*N/{n})\\,{r}\\,r(X\\,Y))\\,r(X\\,Y))':"
-        f"g='if(between(Y\\,{y_top}\\,{y_bot})\\,"
-        f"if(lt(X\\,W*N/{n})\\,{g}\\,g(X\\,Y))\\,g(X\\,Y))':"
-        f"b='if(between(Y\\,{y_top}\\,{y_bot})\\,"
-        f"if(lt(X\\,W*N/{n})\\,{b}\\,b(X\\,Y))\\,b(X\\,Y))'"
+        f"{strip};"
+        f"[0:v]{bg_vf}[bg];"
+        f"[bg][bar]overlay=x=0:y={y_top}:shortest=1,format=yuv420p[v]"
     )
 
 
@@ -214,6 +228,59 @@ def _hex_to_rgb(color_hex: str) -> tuple[int, int, int]:
 
 
 # ------------------------------------------------------------- main builder
+
+
+def _run_encode(cmd: list[str], total_seconds: float) -> subprocess.CompletedProcess[str]:
+    """Run an ffmpeg encode while streaming a coarse percentage.
+
+    ``build`` previously ran the encode with ``subprocess.run(...,
+    capture_output=True)``, which buffers all output until ffmpeg exits, so
+    the encode step printed nothing and looked hung for its entire duration.
+    Here we read ffmpeg's ``-progress -`` key/value stream from stdout and log
+    one line every 10% (newline-terminated, so it streams through a
+    line-buffered parent such as the Colab cell). stderr is drained on a
+    thread to avoid a pipe-fill deadlock and returned for the fallback path.
+    """
+    import threading
+
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
+    )
+    err: list[str] = []
+
+    def _drain() -> None:
+        assert proc.stderr is not None
+        for ln in proc.stderr:
+            err.append(ln)
+
+    th = threading.Thread(target=_drain, daemon=True)
+    th.start()
+
+    total = max(0.001, float(total_seconds))
+    last_bucket = -1
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        line = line.strip()
+        if line.startswith(("out_time_us=", "out_time_ms=")):
+            try:
+                raw = int(line.split("=", 1)[1])
+            except ValueError:
+                continue
+            secs = raw / (1_000_000 if "us=" in line else 1_000)
+            pct = min(100, int(secs / total * 100))
+            bucket = pct - (pct % 10)
+            if bucket > last_bucket:
+                last_bucket = bucket
+                log.info("Encoding: {}% ({:.0f}/{:.0f}s)", bucket, secs, total)
+        elif line == "progress=end" and last_bucket < 100:
+            last_bucket = 100
+            log.info("Encoding: 100% ({:.0f}/{:.0f}s)", total, total)
+
+    proc.wait()
+    th.join(timeout=2)
+    return subprocess.CompletedProcess(
+        cmd, proc.returncode, stdout="", stderr="".join(err)
+    )
 
 
 def build(spec: VideoSpec) -> Path:
@@ -235,16 +302,16 @@ def build(spec: VideoSpec) -> Path:
     else:
         bg_input = _build_video_stream(spec.visual_path, spec.timing.total_seconds, width, height)
 
-    progress_filter = _progress_filter(
+    filter_complex = _progress_filter(
+        bg_vf=bg_input["vf"],
         width=width,
         height=height,
         bar_height=spec.progress_height,
         position=spec.progress_position,
         color_hex=color,
-        frame_count=spec.timing.frame_count,
+        total_seconds=spec.timing.total_seconds,
+        fps=spec.timing.fps,
     )
-
-    filter_complex = f"[0:v]{bg_input['vf']},{progress_filter},format=yuv420p[v]"
     if "af" in bg_input:
         filter_complex += f";{bg_input['af']}[a]"
 
@@ -255,7 +322,6 @@ def build(spec: VideoSpec) -> Path:
         "-hide_banner",
         "-loglevel",
         "error",
-        "-stats",
         "-progress",
         "-",
     ]
@@ -295,7 +361,7 @@ def build(spec: VideoSpec) -> Path:
     ]
 
     log.debug("ffmpeg build command: {}", " ".join(shlex.quote(str(c)) for c in cmd))
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = _run_encode(cmd, spec.timing.total_seconds)
     if result.returncode != 0:
         # Last-chance defence: if the user picked 'auto' and the chosen
         # HW encoder failed at init (e.g. nvcuda.dll missing after a
@@ -318,7 +384,7 @@ def build(spec: VideoSpec) -> Path:
                     break
             log.debug("ffmpeg build (fallback libx264) command: {}",
                       " ".join(shlex.quote(str(c)) for c in cmd))
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = _run_encode(cmd, spec.timing.total_seconds)
             if result.returncode == 0:
                 log.warning("Fallback to libx264 succeeded; final render OK.")
         if result.returncode != 0:
