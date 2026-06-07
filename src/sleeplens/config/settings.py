@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import tomllib
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -183,6 +184,15 @@ class AppSettings:
 def load_settings(path: Path) -> AppSettings:
     """Read settings from a TOML file. Missing file returns defaults."""
     if not path.exists():
+        # Friendly nudge: point at the public template the repo ships.
+        example = path.with_name(path.name + ".example")
+        if example.exists():
+            print(
+                f"[sleeplens] No personal config at {path}. "
+                f"Using defaults. Copy {example.name} to {path.name} "
+                f"and edit your values to persist your settings.",
+                file=sys.stderr,
+            )
         return AppSettings()
     with path.open("rb") as fh:
         raw = tomllib.load(fh)

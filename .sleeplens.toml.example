@@ -1,0 +1,91 @@
+# Sleeplens studio configuration - PUBLIC TEMPLATE
+# ============================================================================
+# Copy this file to `.sleeplens.toml` and edit your values:
+#   cp .sleeplens.toml.example .sleeplens.toml     (macOS / Linux)
+#   copy .sleeplens.toml.example .sleeplens.toml  (Windows)
+#
+# `.sleeplens.toml` is in `.gitignore` so your API key, your local
+# file paths, and your personal preferences stay on your machine and
+# never reach GitHub. This `.example` file is the only config that is
+# committed to the repo, and it carries no real secrets.
+#
+# Every field is optional. Anything you leave blank falls back to the
+# defaults baked into `sleeplens.config.AppSettings`, so the file can
+# be as short as the lines you actually need to override.
+# ============================================================================
+
+# AI connector - default: NVIDIA NIM free tier with DeepSeek V4 Flash.
+# Get a free key at https://build.nvidia.com (no credit card required).
+# Other provider presets: nvidia_nim_deepseek (default), openai_gpt,
+# anthropic_proxy, ollama_local, lmstudio_local, custom.
+provider_id = "nvidia_nim_deepseek"
+base_url = "https://integrate.api.nvidia.com/v1"
+api_key = "YOUR_NVAPI_KEY_HERE"
+model = "deepseek-ai/deepseek-v4-flash"
+temperature = 0.7
+max_tokens = 4096
+request_timeout = 180.0
+max_retries = 4
+
+# Empty string = use the built-in default in script_writer.py
+# (audio-only teacher persona, no relaxation framing, recap at end).
+system_prompt = ""
+
+# TTS - default backend is Edge (free, no key, 46 voices).
+# Other backends (piper, elevenlabs, azure) are placeholders for now.
+tts_backend = "edge"
+tts_voice = "en-US-AriaNeural"
+tts_rate = "-5%"
+tts_pitch = "-2Hz"
+
+# Script source: leave script_topic blank and fill script_file with a
+# path to a text file. Or vice versa. The GUI lets you switch.
+script_topic = ""
+script_file = ""
+target_word_count = 4500
+pause_between_paragraphs = 1.8
+language = "en"
+
+# Visual source. Drop an image or a short loopable video. Leave both
+# blank to use the procedural dark fallback.
+background_image = ""
+background_video = ""
+video_fps = 24
+video_width = 1280
+video_height = 720
+fallback_seed = 20251123
+
+# Ambient bed. "auto" matches keywords from the script (rain, ocean,
+# alpha, lofi, fire, brown noise, ...). "disabled" silences the bed.
+# If `assets/ambient/` is empty, run `uv run python scripts/generate_ambient.py`
+# to synthesise 14 procedural tracks locally (Opus in OGG, ~12 MB total).
+ambient_mode = "auto"
+ambient_volume = 0.18
+ambient_duck_db = 12.0
+voice_volume = 1.0
+
+# Output. "sleep_720p" or "sleep_1080p" (or "audio_only" for a WAV).
+output_preset = "sleep_720p"
+
+# Progress bar. Hex color in 6-digit form.
+progress_bar_color = "#00FF00"
+progress_bar_height = 6
+progress_bar_position = "bottom"
+
+# Hardware encoder.
+#   "auto"   - try NVENC, QSV, AMF, then libx264. Recommended.
+#   "libx264" - CPU encoding, works on any machine.
+#   "nvenc" / "qsv" / "amf" - force a specific HW encoder. Requires
+#     the matching runtime (NVIDIA driver + CUDA for NVENC, Intel
+#     GPU + drivers for QSV, AMD GPU + AMF runtime for AMF). If the
+#     runtime is missing the encode will fail.
+#
+# See docs/HARDWARE.md for when to use which.
+hardware_accel = "auto"
+render_threads = 0   # 0 = let ffmpeg pick. Set to 2-4 on low-RAM machines.
+
+# GUI theme. midnight (default), dark, light, system.
+theme = "midnight"
+
+# Internal. Updated by the GUI after every successful render.
+last_output_stem = ""

@@ -5,6 +5,11 @@ generates calm narration, mixes in a soft ambient bed, paints a frame-accurate
 progress bar, and writes a clean MP4 ready for YouTube, a podcast feed, or a
 local media server. Zero platform lock-in, runs free or fully local.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleeplens/blob/main/docs/cloud/low_ram_render.ipynb)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![uv](https://img.shields.io/badge/managed%20by-uv-purple.svg)](https://docs.astral.sh/uv/)
+
 > Out of the box: NVIDIA NIM free tier (DeepSeek V4) + Edge-TTS + a bundled
 > ffmpeg. Swap any layer for OpenAI, Ollama, LM Studio, or your own endpoint
 > by changing a dropdown and a base URL.
@@ -100,6 +105,76 @@ cp .env.example .env
 
 You can also paste the key straight into the GUI (Provider tab) and
 it gets persisted to `.sleeplens.toml` for next time.
+
+## Hardware requirements
+
+Sleeplens has two render paths. Pick the one that matches your machine.
+
+### Local render (desktop GUI + bundled ffmpeg)
+
+The desktop studio encodes on your own hardware. The encode is the
+heavy step, so the memory and CPU budget below is what the final MP4
+needs, not the TTS or the script generation.
+
+| Component | Minimum | Comfortable | Notes |
+|---|---|---|---|
+| RAM (free) | 2 GB | 6 GB+ | 1080p libx264 medium peaks at ~700 MB working set |
+| CPU | 4 cores | 8 cores | Single-threaded `geq` filter is the bottleneck |
+| GPU | none | NVIDIA + CUDA | NVENC drops encode time by 5-10x |
+| Disk | 500 MB | 2 GB+ | Working set for ffmpeg + cached TTS segments |
+| OS | Windows 10, macOS 12, Ubuntu 20 | Windows 11, macOS 14, Ubuntu 22 | Bundled ffmpeg is Windows; macOS/Linux bring your own |
+
+**Good fit:** a developer laptop, a gaming PC, any machine with 8+
+GB of RAM and a modern CPU. The local path gives you full offline
+control and zero upload steps.
+
+**Bad fit:** 8 GB Windows laptops with Chrome open (the typical
+office machine). The render OOMs at 1080p and the fallback to
+720p + ultrafast still OOMs because the `geq` progress bar
+filter holds ~150 MB of pixel buffers regardless of resolution.
+
+### Cloud render (Google Colab)
+
+A free Colab T4 instance has 12.7 GB of system RAM plus real NVENC
+on a 16 GB T4 GPU. It finishes a 1080p encode in 1-2 minutes
+because the memory headroom is comfortable and the encoder is GPU
+hardware.
+
+| Component | Provided by Colab | Notes |
+|---|---|---|
+| RAM (free) | 12.7 GB | Plenty for 1080p + medium preset + `geq` |
+| GPU | NVIDIA T4 with NVENC | Real hardware encode, 5-10x faster than libx264 |
+| CPU | 2 vCPU | Used only by Edge TTS + script generation |
+| Disk | 78 GB | Wiped when the session ends |
+| Cost | free | No credit card, just a Google account |
+| Time cap | 12 h per session | Plenty for any single video |
+
+**Good fit:** anyone with a Google account and a low-RAM machine.
+The notebook lives in the repo and runs the full sleeplens
+pipeline: Edge TTS, ambient mix, NVENC encode, MP4 download. Open
+the Colab badge at the top of this README, click *Runtime -> Run
+all*, upload the script and the background image, and the MP4
+downloads to your machine in 5-10 minutes.
+
+**Bad fit:** users who need offline access, batch automation, or
+who want to render dozens of videos back-to-back. Colab sessions
+are best-effort and free GPUs are not always available.
+
+### How to pick
+
+- I have 8+ GB of free RAM and a modern CPU: **local** with `auto`
+  encoder. Drop the bundled ffmpeg into `cache/` and run
+  `uv run python run.py gui`.
+- I have 8 GB of RAM and Chrome open: **cloud**. Click the
+  Colab badge.
+- I want to script batch renders: **local** with the CLI
+  (`uv run python run.py render --script foo.txt --output-stem bar`).
+- I want a polished desktop app for non-technical users:
+  **local**, but confirm the machine has 16+ GB of RAM first.
+
+See [docs/CLOUD_RENDER.md](docs/CLOUD_RENDER.md) for the full
+Colab walkthrough and [docs/HARDWARE.md](docs/HARDWARE.md) for
+encoder-specific notes.
 
 ## Daily workflow
 
