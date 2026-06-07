@@ -6,6 +6,12 @@ T4 GPU. The Colab VM has 12.7 GB of system RAM plus a real NVIDIA
 NVENC encoder, which is enough headroom for any 1080p encode
 configuration.
 
+> **Prefer Kaggle?** If you have a large ambient library or render
+> regularly, the [Kaggle notebook](KAGGLE_RENDER.md) gives you a
+> guaranteed 2x T4 GPU, 30 GPU hours per week, and persistent
+> datasets. Use Colab for one-off renders, Kaggle for everything
+> else.
+
 ## When to use this
 
 Use the cloud path when you see one of these errors in the local
@@ -93,3 +99,16 @@ card to use Colab; you only need a Google account (the same one
 you use for Gmail, Drive, etc.). Colab Pro is $9.99/month and gives
 you faster GPUs, longer sessions, and more RAM, but is not required
 for sleeplens renders.
+
+## Alternative: Kaggle
+
+For a recurring workflow with a persistent ambient dataset, see
+[KAGGLE_RENDER.md](KAGGLE_RENDER.md). The trade-off matrix:
+
+| | Colab | Kaggle |
+|---|---|---|
+| GPU | Best-effort T4 | Guaranteed 2x T4 |
+| Weekly quota | None (session-based) | 30 GPU hours/week |
+| Persistent datasets | No | Yes |
+| Setup time | 30 s | 2 min one-time |
+| Best for | One-off renders | Recurring renders with large libraries |

@@ -6,6 +6,7 @@ progress bar, and writes a clean MP4 ready for YouTube, a podcast feed, or a
 local media server. Zero platform lock-in, runs free or fully local.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleeplens/blob/main/docs/cloud/low_ram_render.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/fernandojjq/sleeplens/main/docs/cloud/kaggle_render.ipynb)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![uv](https://img.shields.io/badge/managed%20by-uv-purple.svg)](https://docs.astral.sh/uv/)
