@@ -202,7 +202,7 @@ cells = [
         "elif os.path.exists(BG_VIDEO):",
         '    cmd += ["--background-video", BG_VIDEO]',
         "",
-        f'env = {{**os.environ, "TMP": "{{CACHE}}", "TEMP": "{{CACHE}}"}}',
+        'env = {**os.environ, "TMP": CACHE, "TEMP": CACHE}',
         "print(\"Running:\", \" \".join(cmd))",
         "result = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=WORK)",
         'print("--- stdout (last 2KB) ---")',
