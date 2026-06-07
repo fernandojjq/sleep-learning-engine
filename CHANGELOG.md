@@ -90,6 +90,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `ffmpeg exited with code 4294967284` (the ENOMEM marker
   rendered as an unsigned 32-bit integer) that points the user
   at the cloud render path or the 720p+ultrafast local fallback.
+- **Personal Colab notebook** `docs/cloud/drive_render.ipynb` (with
+  generator `scripts/generate_drive_notebook.py`). Companion to the
+  public `low_ram_render.ipynb` for users who render the same
+  ambient library many times. The 97 normalised mp3s live in
+  Google Drive and are mounted on every Colab session
+  (`/content/drive/MyDrive/sleep-learning-engine/ambient/`), so
+  the only thing the user uploads per render is the script
+  and the background image or video. Defaults to per-session
+  upload (Mode B) instead of Drive pre-stage (Mode A) - the
+  script and image change per project, only the ambient is
+  persistent.
+
+### Fixed
+- **NVENC canary false negative on real T4 hardware.** The
+  probe in `_verify_encoder_works` used `size=64x64
+  duration=0.04 -frames:v 1`. Some NVENC drivers reject this
+  with "Frame Dimension less than the minimum supported value"
+  (the 0.04s duration with 1 forced frame confuses the
+  driver's timing logic). The probe now uses 128x128, 1 second
+  at 24 fps (24 frames - enough for proper frame timing and
+  B-frame reordering), explicit `-pix_fmt yuv420p` (H.264
+  baseline requirement that some encoder defaults miss), and
+  `-bf 0` (no B-frames in the canary). Slightly slower
+  (~1-2s instead of <0.5s) but actually reports the truth
+  about the encoder. Without this fix, a real T4 was being
+  rejected by the canary and the pipeline fell through to
+  libx264 CPU encoding, which is 5-10x slower.
+- **3 cloud-notebook issues caught during a real Colab Pro
+  run:**
+    1. The GPU check cell 1 used to print `"NVENC available:"`
+       with a trailing colon and nothing after, which was
+       misleading: NVENC appears in the encoder list whenever
+       ffmpeg was built with `--enable-nvenc`, regardless of
+       whether a GPU is bound to the container. Replaced with
+       `nvidia-smi` as the real test, and added a clear
+       "NO GPU DETECTED" error with the runtime fix steps if
+       it fails. Also documented that NVENC does NOT use VRAM
+       (the T4 has a dedicated encoder chip; 0.0/15.0 GB USED
+       in nvidia-smi is normal and means the encode is on
+       hardware, not CPU emulation).
+    2. The render subprocess did not inherit the
+       `LD_LIBRARY_PATH` that points at the NVIDIA driver
+       libraries. On Colab/Kaggle, the path is typically
+       `/usr/lib64-nvidia` (Colab) or
+       `/usr/lib/x86_64-linux-gnu` (Kaggle). Without it,
+       ffmpeg can fail silently or fall back to a software
+       emulation that is 5-10x slower. Added a multi-path
+       patch in cell 1 of every cloud notebook that sets
+       `os.environ["LD_LIBRARY_PATH"]` AND passes it in the
+       subprocess env.
+    3. `subprocess.run(..., capture_output=True)` buffered the
+       entire render and only flushed stdout at the end, looking
+       frozen for 10 minutes. Switched to `subprocess.Popen`
+       with line-buffered stdout merged with stderr, so each
+       progress line ("Rendered TTS segment N", ffmpeg
+       fps/size/time) appears in the cell output as it arrives.
+       Added a `KeyboardInterrupt` handler so Ctrl+C cleanly
+       terminates the encode.
+- **Kaggle notebook `env` line typo** in the generator
+  (`scripts/generate_kaggle_notebook.py`). The f-string
+  attempted to interpolate `CACHE` at generator scope, where
+  it was undefined, so the generated cell contained the
+  literal text `"{CACHE}"` instead of the variable
+  reference. Replaced with a plain string that uses CACHE
+  as a bare reference resolved at notebook runtime from
+  cell 2.
+- **Per-session upload default for drive notebook.** The
+  drive_render.ipynb cell 3 previously defaulted to "Mode
+  A: pull from Drive" with the script + image pre-staged,
+  which assumed the user was rendering the same topic many
+  times. That is the wrong default for the actual workflow:
+  each project has a different script and a different
+  background, so those change per render and should be
+  uploaded fresh.
 
 ### Fixed
 - **`MixSpec.ambient_path` → `MixSpec.ambient_paths`**. The mixer
