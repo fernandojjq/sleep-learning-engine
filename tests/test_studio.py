@@ -148,6 +148,37 @@ def test_mix_bed_and_voice_voice_only(tmp_path: Path) -> None:
     assert out.stat().st_size > 0
 
 
+def test_mix_filter_uses_long_labels(tmp_path: Path) -> None:
+    """Regression: the filter graph must use ``[voice]`` / ``[bed]`` link labels.
+
+    A previous version used ``[v]`` and ``[b]`` which ffmpeg rejects
+    with 'Stream specifier v in filtergraph description matches no
+    streams' on real-world long renders (the smoke test happened to
+    succeed because the target duration was sub-second).
+    """
+    from sleeplens.audio import mixer as am
+
+    ffmpeg = Path("D:/proyectos/Proyectos Github/sleeplens/cache/ffmpeg.exe")
+    if not ffmpeg.exists():
+        pytest.skip("Bundled ffmpeg not available.")
+    voice = tmp_path / "voice.wav"
+    bed = tmp_path / "bed.wav"
+    target = tmp_path / "mixed.wav"
+    _silent_wav(voice, seconds=2.0)
+    _silent_wav(bed, seconds=2.0)
+    out = am.mix_bed_and_voice(
+        am.MixSpec(
+            voice_path=voice,
+            ambient_path=bed,
+            target_duration=2.0,
+            output_path=target,
+            ffmpeg_bin=ffmpeg,
+        )
+    )
+    assert out.exists()
+    assert out.stat().st_size > 0
+
+
 # ----------------------------------------------------- orchestrator
 
 

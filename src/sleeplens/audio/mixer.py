@@ -155,14 +155,21 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
     #   1. Pad the voice to target_duration so silent paragraph pauses survive.
     #   2. Loop the bed to match the voice duration.
     #   3. Apply sidechain ducking on the bed whenever the voice is active.
+    # Link labels are intentionally spelled out ("voice", "bed") because
+    # single-letter labels such as ``[v]`` or ``[b]`` collide with
+    # ffmpeg's stream-specifier parsing and get rejected with
+    # "Stream specifier 'v' in filtergraph description matches no streams"
+    # on real-world long renders (the smoke test did not catch this
+    # because it used a sub-second target).
     filter_complex = (
         f"[0:a]volume={spec.voice_volume},aresample=48000,asetpts=PTS-STARTPTS,"
-        f"apad=whole_dur={spec.target_duration:.3f},atrim=0:{spec.target_duration:.3f}[v];"
+        f"apad=whole_dur={spec.target_duration:.3f},"
+        f"atrim=0:{spec.target_duration:.3f}[voice];"
         f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{spec.target_duration:.3f},"
-        f"volume={spec.ambient_volume},aresample=48000[b];"
-        f"[b][v]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=1500:"
+        f"volume={spec.ambient_volume},aresample=48000[bed];"
+        f"[bed][voice]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=1500:"
         f"makeup=1[ducked];"
-        f"[v][ducked]amix=inputs=2:duration=first:dropout_transition=0,"
+        f"[voice][ducked]amix=inputs=2:duration=first:dropout_transition=0,"
         f"alimiter=limit=0.95,aresample=48000[aout]"
     )
 
