@@ -1,7 +1,7 @@
 # Cloud rendering on Google Colab
 
 If your local machine runs out of memory during the final 1080p
-encode, sleeplens can run the full pipeline on a free Google Colab
+encode, sleep_learning_engine can run the full pipeline on a free Google Colab
 T4 GPU. The Colab VM has 12.7 GB of system RAM plus a real NVIDIA
 NVENC encoder, which is enough headroom for any 1080p encode
 configuration.
@@ -35,17 +35,17 @@ a 8 GB Windows box, the encode will OOM.
 Click the badge in the README, or open this URL in your browser:
 
 ```
-https://colab.research.google.com/github/fernandojjq/sleeplens/blob/main/docs/cloud/low_ram_render.ipynb
+https://colab.research.google.com/github/fernandojjq/sleep_learning_engine/blob/main/docs/cloud/low_ram_render.ipynb
 ```
 
 Then click **Runtime -> Run all** (or press `Ctrl+F9`).
 
 ### Option B: launch from the CLI
 
-From the sleeplens project directory:
+From the sleep_learning_engine project directory:
 
 ```bash
-uv run python -m sleeplens cloud
+uv run python -m sleep_learning_engine cloud
 ```
 
 The command validates your local state (script file and background
@@ -60,9 +60,9 @@ or `--repo` / `--branch` if you are working from a fork.
 | Cell | Purpose | Time |
 |------|---------|------|
 | 1    | Intro and instructions (markdown) | - |
-| 2    | Install sleeplens from the public repo, confirm NVENC is available | ~30 s |
+| 2    | Install sleep_learning_engine from the public repo, confirm NVENC is available | ~30 s |
 | 3    | Upload the script text file and the background image (browser-driven) | user-driven |
-| 4    | Run the sleeplens render CLI: TTS via Edge, mix with ambient bed, encode with NVENC | ~5 min |
+| 4    | Run the sleep_learning_engine render CLI: TTS via Edge, mix with ambient bed, encode with NVENC | ~5 min |
 | 5    | Download the final MP4 to your machine | user-driven |
 | 6    | Troubleshooting notes (markdown) | - |
 
@@ -98,7 +98,7 @@ The free tier is genuinely free. Google does not ask for a credit
 card to use Colab; you only need a Google account (the same one
 you use for Gmail, Drive, etc.). Colab Pro is $9.99/month and gives
 you faster GPUs, longer sessions, and more RAM, but is not required
-for sleeplens renders.
+for sleep_learning_engine renders.
 
 ## Alternative: Kaggle
 

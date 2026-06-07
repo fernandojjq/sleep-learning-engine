@@ -15,11 +15,11 @@ if TYPE_CHECKING:  # pragma: no cover
 def configure_logging(paths: "ProjectPaths", level: str = "INFO") -> None:
     """Configure the global loguru logger.
 
-    Logs are written to ``<project>/logs/sleeplens.log`` and mirrored to the
+    Logs are written to ``<project>/logs/sleep_learning_engine.log`` and mirrored to the
     console. Old logs are rotated at 5 MB with a 5-file retention.
     """
     paths.log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = paths.log_dir / "sleeplens.log"
+    log_file = paths.log_dir / "sleep_learning_engine.log"
 
     logger.remove()
     logger.add(

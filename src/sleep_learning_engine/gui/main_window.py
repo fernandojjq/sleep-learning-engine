@@ -275,7 +275,7 @@ class StudioApp(ctk.CTk):
         self._job_thread: threading.Thread | None = None
         self._cancel_flag = threading.Event()
 
-        self.title("Sleeplens · Sleep Learning Video Studio")
+        self.title("Sleep Learning Engine · Sleep Learning Video Studio")
         self.geometry("1180x820")
         self.minsize(1024, 720)
         self.configure(fg_color=PALETTE["bg"])
@@ -303,7 +303,7 @@ class StudioApp(ctk.CTk):
     def _build_sidebar(self, parent: ctk.CTkFrame) -> None:
         header = ctk.CTkLabel(
             parent,
-            text="SLEEPLENS",
+            text="SLEEP_LEARNING_ENGINE",
             font=("Inter", 22, "bold"),
             text_color=PALETTE["text"],
         )
@@ -1428,7 +1428,7 @@ class StudioApp(ctk.CTk):
             var.set(path)
 
     def _on_save_clicked(self) -> None:
-        """Persist all current form values to .sleeplens.toml without rendering."""
+        """Persist all current form values to .sleep_learning_engine.toml without rendering."""
         try:
             settings = self._collect_settings()
         except SleeplensError as exc:

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sleeplens"
+name = "sleep_learning_engine"
 version = "0.1.0"
 description = "Sleep learning video studio. Turns text prompts into multi-hour, sleep-optimized MP4s with a built-in dark GUI. Provider-agnostic, runs free or local."
 readme = "README.md"
@@ -83,24 +83,24 @@ dev = [
 ]
 
 [project.scripts]
-sleeplens = "sleeplens.cli:dispatch"
-sleeplens-gui = "sleeplens.cli:_cmd_gui"
+sleep_learning_engine = "sleep_learning_engine.cli:dispatch"
+sleep_learning_engine-gui = "sleep_learning_engine.cli:_cmd_gui"
 
 [project.urls]
-Homepage = "https://github.com/sleeplens/sleeplens"
-Documentation = "https://github.com/sleeplens/sleeplens#readme"
-Issues = "https://github.com/sleeplens/sleeplens/issues"
-Changelog = "https://github.com/sleeplens/sleeplens/releases"
+Homepage = "https://github.com/sleep_learning_engine/sleep_learning_engine"
+Documentation = "https://github.com/sleep_learning_engine/sleep_learning_engine#readme"
+Issues = "https://github.com/sleep_learning_engine/sleep_learning_engine/issues"
+Changelog = "https://github.com/sleep_learning_engine/sleep_learning_engine/releases"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["sleeplens*"]
+include = ["sleep_learning_engine*"]
 
 [tool.setuptools.package-data]
-sleeplens = ["py.typed"]
+sleep_learning_engine = ["py.typed"]
 
 [tool.ruff]
 line-length = 100

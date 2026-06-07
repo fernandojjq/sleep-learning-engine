@@ -1,6 +1,6 @@
-# Mi tutorial de Sleeplens
+# Mi tutorial de Sleep Learning Engine
 
-Asume que ya tenés todo instalado en `D:\proyectos\Proyectos Github\sleeplens`
+Asume que ya tenés todo instalado en `D:\proyectos\Proyectos Github\sleep_learning_engine`
 (uv, venv, ffmpeg en cache, las 14 pistas de ambient, 15 tests pasando).
 
 ## Tu caso de uso
@@ -16,12 +16,12 @@ nada. **El tutorial es solo eso.**
 ### 1. Escribí el guion
 
 Abrí un bloc de notas y guardalo en alguna carpeta, por ejemplo
-`D:\proyectos\Proyectos Github\sleeplens\output\`.
+`D:\proyectos\Proyectos Github\sleep_learning_engine\output\`.
 
 Formato: párrafos separados por una línea en blanco. Cada párrafo
 se convierte en un bloque narrado con una pausa entre ellos.
 
-Ejemplo (`D:\proyectos\Proyectos Github\sleeplens\output\historia-roma.txt`):
+Ejemplo (`D:\proyectos\Proyectos Github\sleep_learning_engine\output\historia-roma.txt`):
 
 ```
 Bienvenido. Hoy vamos a recorrer dos mil años de historia sin
@@ -46,7 +46,7 @@ Más largo = más duración. ~150 palabras por minuto. **4500 palabras ≈ 30 mi
 ### 2. Abrí la app
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleeplens"
+cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
 uv run python run.py
 ```
 
@@ -87,7 +87,7 @@ Cuando termina, el sidebar te muestra dónde quedó, qué tan largo es
 y el estado del pipeline. El archivo vive en:
 
 ```
-D:\proyectos\Proyectos Github\sleeplens\output\sleeplens-1717729384.mp4
+D:\proyectos\Proyectos Github\sleep_learning_engine\output\sleep_learning_engine-1717729384.mp4
 ```
 
 El nombre es la timestamp del momento. Si querés un nombre más
@@ -95,7 +95,7 @@ amigable, renombralo desde el explorador de Windows o desde la
 terminal:
 
 ```powershell
-Rename-Item "D:\proyectos\Proyectos Github\sleeplens\output\sleeplens-1717729384.mp4" "historia-roma-30m.mp4"
+Rename-Item "D:\proyectos\Proyectos Github\sleep_learning_engine\output\sleep_learning_engine-1717729384.mp4" "historia-roma-30m.mp4"
 ```
 
 ### 4b. Botones del sidebar (de arriba para abajo)
@@ -104,7 +104,7 @@ Rename-Item "D:\proyectos\Proyectos Github\sleeplens\output\sleeplens-1717729384
 | ----- | -------- |
 | **Render full video** | El flujo completo: script → voz → ambient → mix → visual → encode |
 | **Generate script only** | Solo genera el guion y lo guarda como `.txt` en `output/`. Útil para iterar el texto antes de invertir 5 min en renderizar audio + video |
-| **Save settings (API key, model, etc.)** | Persiste TODO (API key, modelo, voz, ambient, output) en `.sleeplens.toml`. No necesitas renderizar para guardar |
+| **Save settings (API key, model, etc.)** | Persiste TODO (API key, modelo, voz, ambient, output) en `.sleep_learning_engine.toml`. No necesitas renderizar para guardar |
 | **Cancel** | Aparece habilitado durante un render. Cancela limpiamente (los archivos parciales se limpian) |
 
 ---
@@ -130,10 +130,10 @@ por render completo.
 Todo se puede hacer desde la terminal sin abrir la app:
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleeplens"
+cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
 
 # Lo más simple
-uv run python run.py render --script "D:\proyectos\Proyectos Github\sleeplens\output\historia-roma.txt"
+uv run python run.py render --script "D:\proyectos\Proyectos Github\sleep_learning_engine\output\historia-roma.txt"
 
 # Con nombre de salida personalizado
 uv run python run.py render --script .\output\historia-roma.txt --output-stem historia-roma
@@ -262,7 +262,7 @@ más corto, más poético, en otro estilo):
 3. Editá el textbox con tus instrucciones
 
 Si lo dejás vacío, usa el default. Si lo llenás, sobreescribe el
-default para esa sesión (se guarda en `.sleeplens.toml`).
+default para esa sesión (se guarda en `.sleep_learning_engine.toml`).
 
 ---
 
@@ -294,7 +294,7 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
   preset de libx264 a `ultrafast`. La encode termina a costa de
   un poco de calidad pero el video sale completo.
 - **Solución nube:** corré el render en Google Colab (gratis).
-  Tirá `python -m sleeplens cloud` desde la carpeta del proyecto
+  Tirá `python -m sleep_learning_engine cloud` desde la carpeta del proyecto
   y abrí la URL. El notebook tiene T4 GPU + 12.7 GB de RAM, y
   termina la encode 1080p en 1-2 minutos con NVENC real.
 
@@ -312,7 +312,7 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
   `uv run python scripts\generate_ambient.py --normalize`
 
 **Quiero que el ambient varíe, no siempre la misma pista**
-- Por default, sleeplens arma un **playlist aleatorio sin
+- Por default, sleep_learning_engine arma un **playlist aleatorio sin
   repetición** con las pistas que matchean los keywords del
   script. Cada pista suena una vez antes de que el ciclo
   completo se repita, así un video de 6 horas no es la misma
@@ -321,11 +321,11 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
   disabled), cambiá **Ambient bed mode** en la pestaña Audio.
 
 **Quiero ver el log detallado de un error**
-- Está en `D:\proyectos\Proyectos Github\sleeplens\logs\sleeplens.log`
+- Está en `D:\proyectos\Proyectos Github\sleep_learning_engine\logs\sleep_learning_engine.log`
   (rota a 5 MB con 5 archivos de historia).
 
 **Quiero resetear todos los ajustes a default**
-- Borrá `D:\proyectos\Proyectos Github\sleeplens\.sleeplens.toml`.
+- Borrá `D:\proyectos\Proyectos Github\sleep_learning_engine\.sleep_learning_engine.toml`.
   La próxima vez que abras la app arranca limpia.
 
 ---
@@ -333,7 +333,7 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
 ## Tu setup en una línea
 
 ```
-D:\proyectos\Proyectos Github\sleeplens\
+D:\proyectos\Proyectos Github\sleep_learning_engine\
   .venv\                <- venv manejado por uv
   cache\ffmpeg.exe      <- binario ffmpeg
   assets\ambient\       <- 14 pistas procedurales (rain, lofi, etc.)

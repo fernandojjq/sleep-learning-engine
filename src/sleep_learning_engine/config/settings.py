@@ -188,7 +188,7 @@ def load_settings(path: Path) -> AppSettings:
         example = path.with_name(path.name + ".example")
         if example.exists():
             print(
-                f"[sleeplens] No personal config at {path}. "
+                f"[sleep_learning_engine] No personal config at {path}. "
                 f"Using defaults. Copy {example.name} to {path.name} "
                 f"and edit your values to persist your settings.",
                 file=sys.stderr,
@@ -269,7 +269,7 @@ def save_settings(path: Path, settings: AppSettings) -> None:
     payload.update(settings.extra)
 
     # Avoid pulling in a TOML writer dependency: emit by hand.
-    lines: list[str] = ["# Sleeplens studio configuration", ""]
+    lines: list[str] = ["# Sleep Learning Engine studio configuration", ""]
     for k, v in payload.items():
         lines.append(f"{k} = {_toml_literal(v)}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -51,7 +51,7 @@ half-asleep on a phone or a bedroom TV at arm's length, and the
 ambient bed and the voice dominate perception. 720p gives the
 same viewing experience at 4x less memory for the filter graph
 and ~2x less encode time. Flip the `output_preset` to
-`sleep_720p` in the GUI Render tab or in `.sleeplens.toml`.
+`sleep_720p` in the GUI Render tab or in `.sleep_learning_engine.toml`.
 
 ## When to add RAM instead
 

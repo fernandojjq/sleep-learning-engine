@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Sleeplens are documented in this file.
+All notable changes to Sleep Learning Engine are documented in this file.
 
 ## 0.1.0 (2026-06-06)
 

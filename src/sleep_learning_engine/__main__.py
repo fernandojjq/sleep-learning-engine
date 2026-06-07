@@ -1,4 +1,4 @@
-"""Entry point for `python -m sleeplens`."""
+"""Entry point for `python -m sleep_learning_engine`."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ def main() -> int:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-    from sleeplens.cli import dispatch
+    from sleep_learning_engine.cli import dispatch
 
     return dispatch(sys.argv[1:])
 

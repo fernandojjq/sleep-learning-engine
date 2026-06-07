@@ -1,6 +1,6 @@
 """Procedural ambient track generator.
 
-Synthesises a small library of royalty-free ambient beds for Sleeplens.
+Synthesises a small library of royalty-free ambient beds for Sleep Learning Engine.
 No samples, no downloads, no copyright: every sound is built from
 white noise and oscillators in numpy/scipy, then written to WAV
 and re-encoded to Opus in an OGG container for compact distribution.

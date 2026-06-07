@@ -76,7 +76,7 @@ class AIConnector:
         http_client = httpx.Client(
             timeout=timeout,
             follow_redirects=True,
-            headers={"User-Agent": "sleeplens/0.1"},
+            headers={"User-Agent": "sleep_learning_engine/0.1"},
         )
         self._client = OpenAI(
             base_url=base_url.rstrip("/"),

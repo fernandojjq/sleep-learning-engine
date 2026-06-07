@@ -251,7 +251,7 @@ def run_render(
 
     # 7. Encode
     emit(RenderStage.ENCODE, "Encoding final video")
-    stem = settings.last_output_stem or f"sleeplens-{int(started)}"
+    stem = settings.last_output_stem or f"sleep_learning_engine-{int(started)}"
     output_path = paths.unique_output(stem)
     video_spec = VideoSpec(
         visual_path=visual.path,

@@ -40,7 +40,7 @@ enough for ~20-30 six-minute videos.
    `.mp3` files in, title the dataset `ambient` (or any kebab-case
    slug). The notebook reads from `/kaggle/input/<slug>/`.
 2. **(Optional) Upload your script and background image as a second
-   dataset** named `sleeplens-assets`, so the notebook picks them
+   dataset** named `sleep_learning_engine-assets`, so the notebook picks them
    up automatically. If you skip this, the notebook can generate
    the script in-cell from a topic.
 3. **Open the notebook** at `kaggle.com/code` -> New Notebook.
@@ -55,10 +55,10 @@ enough for ~20-30 six-minute videos.
 | Cell | Purpose | Time |
 |------|---------|------|
 | 1    | Intro (markdown) | - |
-| 2    | Install sleeplens from GitHub, confirm NVENC | ~30 s |
+| 2    | Install sleep_learning_engine from GitHub, confirm NVENC | ~30 s |
 | 3    | Set up paths, copy ambient from dataset to working dir | ~10 s |
 | 4    | Optional: generate the script from a topic in-notebook | user-driven |
-| 5    | Run the sleeplens render with T4 NVENC encode | ~1-2 min |
+| 5    | Run the sleep_learning_engine render with T4 NVENC encode | ~1-2 min |
 | 6    | Locate the output MP4, print instructions to download | - |
 | 7    | Colab vs Kaggle notes (markdown) | - |
 

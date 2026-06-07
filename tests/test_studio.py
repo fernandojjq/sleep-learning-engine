@@ -20,12 +20,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from sleeplens.audio import mixer  # noqa: E402
-from sleeplens.audio.tts import TTSSegment  # noqa: E402
-from sleeplens.config import AmbientMode, AppSettings, OutputPreset, TTSBackend  # noqa: E402
-from sleeplens.core import run_render  # noqa: E402
-from sleeplens.video.timing import compute_timing  # noqa: E402
-from sleeplens.visual.assets import generate_fallback  # noqa: E402
+from sleep_learning_engine.audio import mixer  # noqa: E402
+from sleep_learning_engine.audio.tts import TTSSegment  # noqa: E402
+from sleep_learning_engine.config import AmbientMode, AppSettings, OutputPreset, TTSBackend  # noqa: E402
+from sleep_learning_engine.core import run_render  # noqa: E402
+from sleep_learning_engine.video.timing import compute_timing  # noqa: E402
+from sleep_learning_engine.visual.assets import generate_fallback  # noqa: E402
 
 
 # ----------------------------------------------------------------- timing
@@ -106,7 +106,7 @@ def test_fallback_image_is_dark_and_correct_size(tmp_path: Path) -> None:
 
 
 def test_load_script_from_file(tmp_path: Path) -> None:
-    from sleeplens.ai.script_writer import load_script_from_file
+    from sleep_learning_engine.ai.script_writer import load_script_from_file
 
     f = tmp_path / "lesson.txt"
     f.write_text("First paragraph.\n\nSecond paragraph here.\n\nThird one too.", encoding="utf-8")
@@ -127,9 +127,9 @@ def _silent_wav(path: Path, seconds: float = 2.0, rate: int = 48000) -> None:
 
 
 def test_mix_bed_and_voice_voice_only(tmp_path: Path) -> None:
-    from sleeplens.audio import mixer as am
+    from sleep_learning_engine.audio import mixer as am
 
-    ffmpeg = Path("D:/proyectos/Proyectos Github/sleeplens/cache/ffmpeg.exe")
+    ffmpeg = ROOT / "cache" / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
     if not ffmpeg.exists():
         pytest.skip("Bundled ffmpeg not available.")
     voice = tmp_path / "voice.wav"
@@ -156,9 +156,9 @@ def test_mix_filter_uses_long_labels(tmp_path: Path) -> None:
     streams' on real-world long renders (the smoke test happened to
     succeed because the target duration was sub-second).
     """
-    from sleeplens.audio import mixer as am
+    from sleep_learning_engine.audio import mixer as am
 
-    ffmpeg = Path("D:/proyectos/Proyectos Github/sleeplens/cache/ffmpeg.exe")
+    ffmpeg = ROOT / "cache" / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
     if not ffmpeg.exists():
         pytest.skip("Bundled ffmpeg not available.")
     voice = tmp_path / "voice.wav"
@@ -187,12 +187,12 @@ def test_orchestrator_with_prewritten_script(tmp_path_factory: pytest.TempPathFa
 
     This exercises the timing engine, visual fallback, mixer, and encoder.
     """
-    from sleeplens.config import resolve_paths
-    from sleeplens.audio import tts as tts_mod
+    from sleep_learning_engine.config import resolve_paths
+    from sleep_learning_engine.audio import tts as tts_mod
 
     # pytest's default tmp_path lives on the C: drive on Windows; force the
     # workspace onto D: so we never touch the nearly-full C: partition.
-    on_d = Path(r"D:\proyectos\Proyectos Github\sleeplens\cache\pytest-tmp")
+    on_d = Path(r"D:\proyectos\Proyectos Github\sleep_learning_engine\cache\pytest-tmp")
     on_d.mkdir(parents=True, exist_ok=True)
     # Use a timestamped subfolder so reruns do not collide on stale state.
     import time
@@ -207,11 +207,11 @@ def test_orchestrator_with_prewritten_script(tmp_path_factory: pytest.TempPathFa
     (proj / "output").mkdir(parents=True)
     (proj / "cache").mkdir(parents=True)
     shutil.copy(
-        Path("D:/proyectos/Proyectos Github/sleeplens/cache/ffmpeg.exe"),
+        ROOT / "cache" / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg"),
         proj / "cache" / "ffmpeg.exe",
     )
     shutil.copy(
-        Path("D:/proyectos/Proyectos Github/sleeplens/cache/ffprobe.exe"),
+        ROOT / "cache" / ("ffprobe.exe" if sys.platform == "win32" else "ffprobe"),
         proj / "cache" / "ffprobe.exe",
     )
     script_path = proj / "script.txt"

@@ -11,15 +11,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
-from sleeplens.audio.tts import TTSEngine
-from sleeplens.config import (
+from sleep_learning_engine.audio.tts import TTSEngine
+from sleep_learning_engine.config import (
     AmbientMode,
     AppSettings,
     OutputPreset,
     TTSBackend,
     resolve_paths,
 )
-from sleeplens.core import run_render
+from sleep_learning_engine.core import run_render
 
 
 def main() -> int:

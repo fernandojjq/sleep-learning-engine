@@ -17,11 +17,12 @@ def _project_root() -> Path:
     """Locate the project root.
 
     Resolution order:
-    1. ``$SLEEPLENS_HOME`` environment variable.
-    2. Walk up from this file until we find ``pyproject.toml``.
+    1. ``$SLEEP_LEARNING_ENGINE_HOME`` environment variable (new name).
+    2. ``$SLEEPLENS_HOME`` (legacy, kept for back-compat with old checkouts).
+    3. Walk up from this file until we find ``pyproject.toml``.
     """
 
-    env = os.environ.get("SLEEPLENS_HOME")
+    env = os.environ.get("SLEEP_LEARNING_ENGINE_HOME") or os.environ.get("SLEEPLENS_HOME")
     if env:
         p = Path(env).expanduser().resolve()
         if p.exists():
@@ -31,7 +32,7 @@ def _project_root() -> Path:
     for parent in here.parents:
         if (parent / "pyproject.toml").exists():
             return parent
-    # Fallback: two levels up from src/sleeplens/config/paths.py
+    # Fallback: two levels up from src/sleep_learning_engine/config/paths.py
     return here.parents[2]
 
 
@@ -83,6 +84,13 @@ def resolve_paths(
     assets_dir = root / "assets"
     cache_dir = root / "cache"
 
+    # Config file: new name is preferred, legacy ``.sleeplens.toml`` is
+    # accepted as a fallback so users on existing checkouts do not
+    # have to rename the file by hand.
+    config_file = root / ".sleep_learning_engine.toml"
+    if not config_file.exists() and (root / ".sleeplens.toml").exists():
+        config_file = root / ".sleeplens.toml"
+
     # 1. Caller-provided override wins.
     # 2. Bundled binary at ``cache/ffmpeg.exe`` (Windows) or ``cache/ffmpeg`` (POSIX).
     # 3. ``$FFMPEG_BIN`` env var.
@@ -123,5 +131,5 @@ def resolve_paths(
         ffmpeg_bin=ffmpeg_bin,
         ffprobe_bin=ffprobe_bin,
         log_dir=root / "logs",
-        config_file=root / ".sleeplens.toml",
+        config_file=root / ".sleep_learning_engine.toml",
     )

@@ -1,4 +1,4 @@
-"""Command-line entry point used by `python -m sleeplens render`."""
+"""Command-line entry point used by `python -m sleep_learning_engine render`."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def dispatch(argv: Sequence[str]) -> int:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="sleeplens",
+        prog="sleep_learning_engine",
         description="Sleep-learning video studio (CLI).",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -39,8 +39,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     cloud.add_argument(
         "--repo",
-        default="fernandojjq/sleeplens",
-        help="GitHub repo (default: fernandojjq/sleeplens).",
+        default="fernandojjq/sleep_learning_engine",
+        help="GitHub repo (default: fernandojjq/sleep_learning_engine).",
     )
     cloud.add_argument(
         "--branch",
@@ -90,7 +90,7 @@ def _cmd_providers(args: argparse.Namespace) -> int:
 def _cmd_cloud(args: argparse.Namespace) -> int:
     """Print (and optionally open) the Colab URL for low-RAM cloud rendering.
 
-    The notebook is checked into the repo and runs the full sleeplens
+    The notebook is checked into the repo and runs the full sleep_learning_engine
     pipeline on a free Colab T4 GPU (NVENC + 12.7 GB RAM). It is the
     right fallback when the local machine runs out of memory during the
     final 1080p encode.
@@ -106,7 +106,7 @@ def _cmd_cloud(args: argparse.Namespace) -> int:
         f"blob/{args.branch}/{notebook_path}"
     )
 
-    print("Sleeplens low-RAM cloud render")
+    print("Sleep Learning Engine low-RAM cloud render")
     print("=" * 60)
     print()
     print(f"Notebook:  {url}")

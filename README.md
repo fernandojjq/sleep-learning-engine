@@ -1,12 +1,12 @@
-# Sleeplens
+# Sleep Learning Engine
 
-Turn a short topic into a multi-hour, sleep-friendly learning video. Sleeplens
+Turn a short topic into a multi-hour, sleep-friendly learning video. Sleep Learning Engine
 generates calm narration, mixes in a soft ambient bed, paints a frame-accurate
 progress bar, and writes a clean MP4 ready for YouTube, a podcast feed, or a
 local media server. Zero platform lock-in, runs free or fully local.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleeplens/blob/main/docs/cloud/low_ram_render.ipynb)
-[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/fernandojjq/sleeplens/main/docs/cloud/kaggle_render.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/fernandojjq/sleep_learning_engine/blob/main/docs/cloud/low_ram_render.ipynb)
+[![Open In Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/fernandojjq/sleep_learning_engine/main/docs/cloud/kaggle_render.ipynb)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![uv](https://img.shields.io/badge/managed%20by-uv-purple.svg)](https://docs.astral.sh/uv/)
@@ -62,8 +62,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Then clone and launch:
 
 ```bash
-git clone https://github.com/fernandojjq/sleeplens.git
-cd sleeplens
+git clone https://github.com/fernandojjq/sleep_learning_engine.git
+cd sleep_learning_engine
 
 # Creates .venv and installs every dependency locked in uv.lock.
 # This includes pytest, ruff, and mypy under the dev group.
@@ -105,11 +105,11 @@ cp .env.example .env
 ```
 
 You can also paste the key straight into the GUI (Provider tab) and
-it gets persisted to `.sleeplens.toml` for next time.
+it gets persisted to `.sleep_learning_engine.toml` for next time.
 
 ## Hardware requirements
 
-Sleeplens has two render paths. Pick the one that matches your machine.
+Sleep Learning Engine has two render paths. Pick the one that matches your machine.
 
 ### Local render (desktop GUI + bundled ffmpeg)
 
@@ -151,7 +151,7 @@ hardware.
 | Time cap | 12 h per session | Plenty for any single video |
 
 **Good fit:** anyone with a Google account and a low-RAM machine.
-The notebook lives in the repo and runs the full sleeplens
+The notebook lives in the repo and runs the full sleep_learning_engine
 pipeline: Edge TTS, ambient mix, NVENC encode, MP4 download. Open
 the Colab badge at the top of this README, click *Runtime -> Run
 all*, upload the script and the background image, and the MP4
@@ -207,7 +207,7 @@ activates the project venv, and runs the command. No need to manually
 - **`ffmpeg not found` when rendering.** Drop a static `ffmpeg.exe`
   into the `cache/` folder of your clone, or set `FFMPEG_BIN` to the
   full path of your system install.
-- **`ModuleNotFoundError: sleeplens`.** You ran `python run.py`
+- **`ModuleNotFoundError: sleep_learning_engine`.** You ran `python run.py`
   without `uv run`. Use `uv run python run.py` or activate the venv
   with `.venv\Scripts\activate` (Windows) / `source .venv/bin/activate`
   (POSIX) first.
@@ -222,11 +222,11 @@ activates the project venv, and runs the command. No need to manually
   via `uv`, install the optional group with `uv pip install torch --extra-index-url https://download.pytorch.org/whl/cu121`
   inside the active venv.
 
-## Why Sleeplens
+## Why Sleep Learning Engine
 
 Most "text to video" tools fall into two camps: locked-down cloud platforms
 that bill you per minute, or local toolchains that demand a CS degree to
-assemble. Sleeplens is the middle path.
+assemble. Sleep Learning Engine is the middle path.
 
 - **Zero lock-in.** Every layer is swappable. The text generation speaks
   the OpenAI chat completions spec, the TTS is a thin engine wrapper, the
@@ -246,7 +246,7 @@ assemble. Sleeplens is the middle path.
 
 ```
 +--------------------------+
-|  Sleeplens GUI (CustomTk)|
+|  Sleep Learning Engine GUI (CustomTk)|
 |  +-----------+ +-------+ |
 |  | Prompt    | | API   | |
 |  | + script  | | key   | |
@@ -271,7 +271,7 @@ assemble. Sleeplens is the middle path.
 +--------------------------+
 ```
 
-Each subsystem lives in its own module under `src/sleeplens/` and is fully
+Each subsystem lives in its own module under `src/sleep_learning_engine/` and is fully
 unit tested.
 
 ## Stack
@@ -312,7 +312,7 @@ pre-rendered track.
 
 ## CLI
 
-Sleeplens ships a small CLI for headless rendering on a server.
+Sleep Learning Engine ships a small CLI for headless rendering on a server.
 
 ```bash
 # Render from a topic.
@@ -353,8 +353,8 @@ videos they produce.
 ## Repository layout
 
 ```
-sleeplens/
-├── src/sleeplens/          # library
+sleep_learning_engine/
+├── src/sleep_learning_engine/          # library
 │   ├── ai/                 # AI connector + script writer
 │   ├── audio/              # TTS, ambient scanner, mixer
 │   ├── config/             # paths + pydantic settings

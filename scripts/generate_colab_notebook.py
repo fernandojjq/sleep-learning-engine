@@ -3,7 +3,7 @@
 The notebook is checked into the repo as
 ``docs/cloud/low_ram_render.ipynb`` so anyone can open it directly in
 Google Colab via the badge in the README. The notebook runs the full
-sleeplens pipeline (TTS + mix + NVENC encode) on a free T4 GPU, which
+sleep_learning_engine pipeline (TTS + mix + NVENC encode) on a free T4 GPU, which
 has 16 GB VRAM and 12.7 GB system RAM - more than enough for 1080p
 H.264 at any preset.
 """
@@ -40,9 +40,9 @@ def code(*lines: str) -> dict:
 
 cells = [
     md(
-        "# Sleeplens low-RAM cloud render",
+        "# Sleep Learning Engine low-RAM cloud render",
         "",
-        "Run the full sleeplens pipeline on a free Google Colab T4 GPU. This is",
+        "Run the full sleep_learning_engine pipeline on a free Google Colab T4 GPU. This is",
         "the right path when your local machine runs out of memory during the",
         "final encode: a 1080p H.264 video needs ~700 MB of free RAM for the",
         "libx264 medium preset, and the per-pixel `geq` progress bar adds ~150",
@@ -60,9 +60,9 @@ cells = [
         "idle, but a 6-minute video finishes in well under 10 minutes.",
     ),
     code(
-        "# 1. Install sleeplens and its dependencies. Pulls from the public",
+        "# 1. Install sleep_learning_engine and its dependencies. Pulls from the public",
         "# GitHub repo, so this only needs an internet connection.",
-        '!pip install -q "sleeplens @ git+https://github.com/fernandojjq/sleeplens.git"',
+        '!pip install -q "sleep_learning_engine @ git+https://github.com/fernandojjq/sleep_learning_engine.git"',
         "",
         "# Colab's system ffmpeg already includes NVENC and CUDA; no need to",
         "# apt-get install a custom build. We still probe it to confirm.",
@@ -99,7 +99,7 @@ cells = [
         '        raise SystemExit("Set TOPIC and API_KEY before flipping GENERATE_SCRIPT to True.")',
         "    from openai import OpenAI",
         "    client = OpenAI(base_url=BASE_URL, api_key=API_KEY, timeout=180.0)",
-        "    from sleeplens.ai.script_writer import SYSTEM_PROMPT",
+        "    from sleep_learning_engine.ai.script_writer import SYSTEM_PROMPT",
         '    user_prompt = f"Topic: {TOPIC}\\nTarget word count: {TARGET_WORDS}."',
         "    response = client.chat.completions.create(",
         '        model=MODEL,',
@@ -172,15 +172,15 @@ cells = [
         '    raise SystemExit("Need a background image (.jpg/.png) or a video (.mp4/.mov).")',
     ),
     code(
-        "# 3. Render the video. This runs the same sleeplens pipeline as the",
+        "# 3. Render the video. This runs the same sleep_learning_engine pipeline as the",
         "# local CLI: TTS via Edge, mix with the procedural ambient bed, and",
         "# the final ffmpeg encode. On Colab, the encode uses real NVENC, so",
         "# a 6-minute 1080p video finishes in about 1-2 minutes.",
         "import subprocess, sys",
         "",
-        'OUT_STEM = "sleeplens-colab"',
+        'OUT_STEM = "sleep_learning_engine-colab"',
         'cmd = [',
-        '    "python", "-m", "sleeplens", "render",',
+        '    "python", "-m", "sleep_learning_engine", "render",',
         '    "--script", SCRIPT,',
         '    "--output-stem", OUT_STEM,',
         "]",
@@ -213,7 +213,7 @@ cells = [
     md(
         "## What just happened",
         "",
-        "- **Cell 1** installed sleeplens from the public repo and confirmed",
+        "- **Cell 1** installed sleep_learning_engine from the public repo and confirmed",
         "  Colab's ffmpeg build exposes NVENC (it always does on T4 instances).",
         "- **Cell 2a** optionally generated the script in Colab from a topic",
         "  using whatever API key you pasted in. Skip it if you uploaded a",
@@ -221,7 +221,7 @@ cells = [
         "- **Cell 2b** took the files you uploaded and resolved the script path,",
         "  the background image, and the background video (whichever you gave).",
         "  Either an image or a short loopable video works.",
-        "- **Cell 3** ran the full sleeplens CLI: TTS via Edge, mix with the",
+        "- **Cell 3** ran the full sleep_learning_engine CLI: TTS via Edge, mix with the",
         "  procedural ambient bed, encode with `h264_nvenc` on the T4.",
         "- **Cell 4** downloaded the MP4 to your machine.",
         "",

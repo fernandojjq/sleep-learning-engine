@@ -1,8 +1,8 @@
-# Guia de uso de Sleeplens
+# Guia de uso de Sleep Learning Engine
 
 Tutorial paso a paso para producir un video de sleep-learning cada vez
 que quieras. Asume que el proyecto ya esta clonado en
-`D:\proyectos\Proyectos Github\sleeplens`.
+`D:\proyectos\Proyectos Github\sleep_learning_engine`.
 
 ---
 
@@ -24,7 +24,7 @@ Cierra y abre la terminal para que tome el PATH.
 Desde la carpeta del proyecto:
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleeplens"
+cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
 uv sync
 ```
 
@@ -39,7 +39,7 @@ build 6.x u 8.x sirve. La forma mas facil:
    https://www.gyan.dev/ffmpeg/builds/ (Windows) o
    https://johnvansickle.com/ffmpeg/ (Linux).
 2. Copia `ffmpeg.exe` y `ffprobe.exe` a
-   `D:\proyectos\Proyectos Github\sleeplens\cache\`.
+   `D:\proyectos\Proyectos Github\sleep_learning_engine\cache\`.
 3. Listo. El studio los detecta ahi primero.
 
 Si ya tienes ffmpeg en el PATH del sistema, tambien lo encuentra.
@@ -84,7 +84,7 @@ Tienes dos formas: GUI (mas visual) o CLI (mas rapida para CI).
 ### Opcion A - GUI (recomendado para empezar)
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleeplens"
+cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
 uv run python run.py
 ```
 
@@ -177,7 +177,7 @@ Click. La app empieza a:
 6. Encodear el MP4 final.
 
 El log de abajo te muestra cada paso. Al terminar, el archivo
-queda en `output\sleeplens-<timestamp>.mp4`.
+queda en `output\sleep_learning_engine-<timestamp>.mp4`.
 
 Si te equivocas o demora mucho, click en **Cancel** y se detiene
 limpio.
@@ -227,14 +227,14 @@ parsear:
 ## Donde queda todo
 
 ```
-D:\proyectos\Proyectos Github\sleeplens\
+D:\proyectos\Proyectos Github\sleep_learning_engine\
   output\                  <- tus MP4 finales aqui
   cache\tts\               <- cache de TTS (segmentos por parrafo)
   cache\mixed.wav          <- mezcla final voz + ambient
   assets\ambient\          <- 14 pistas procedurales (solo en tu maquina)
   assets\visuals\          <- si pones fondos personalizados
-  logs\sleeplens.log       <- log rotado, util si algo falla
-  .sleeplens.toml          <- ajustes persistidos (se sobreescribe al render)
+  logs\sleep_learning_engine.log       <- log rotado, util si algo falla
+  .sleep_learning_engine.toml          <- ajustes persistidos (se sobreescribe al render)
   .env                     <- tu API key (NO se sube al repo)
 ```
 
@@ -259,7 +259,7 @@ D:\proyectos\Proyectos Github\sleeplens\
   Si no se ve, revisa que "Bar height" no este en 0.
 
 **Quiero resetear todos los ajustes**
-- Borra `.sleeplens.toml` y vuelve a abrir la app. Arranca con los
+- Borra `.sleep_learning_engine.toml` y vuelve a abrir la app. Arranca con los
   valores por defecto.
 
 **Los tests fallan despues de un cambio**

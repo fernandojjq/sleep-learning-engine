@@ -13,9 +13,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from sleeplens.ai.connector import AIConnector, ChatMessage  # noqa: E402
-from sleeplens.core.exceptions import ProviderError  # noqa: E402
-from sleeplens.core.retry import call_with_backoff  # noqa: E402
+from sleep_learning_engine.ai.connector import AIConnector, ChatMessage  # noqa: E402
+from sleep_learning_engine.core.exceptions import ProviderError  # noqa: E402
+from sleep_learning_engine.core.retry import call_with_backoff  # noqa: E402
 
 
 # ----------------------------------------------------- connector basics

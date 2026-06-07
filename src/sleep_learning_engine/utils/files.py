@@ -13,7 +13,7 @@ def safe_filename(stem: str, max_length: int = 64) -> str:
     cleaned = _FILENAME_SAFE.sub("-", stem.strip())
     cleaned = cleaned.strip("-_.")
     if not cleaned:
-        cleaned = "sleeplens-output"
+        cleaned = "sleep_learning_engine-output"
     if len(cleaned) > max_length:
         cleaned = cleaned[:max_length].rstrip("-_.")
     return cleaned

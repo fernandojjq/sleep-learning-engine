@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from sleeplens.cli import dispatch
+from sleep_learning_engine.cli import dispatch
 
 if __name__ == "__main__":
     raise SystemExit(dispatch(sys.argv[1:]))
