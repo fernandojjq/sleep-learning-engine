@@ -1,186 +1,189 @@
-# Mi tutorial de Sleep Learning Engine
+# My Sleep Learning Engine tutorial
 
-Asume que ya tenés todo instalado en `D:\proyectos\Proyectos Github\sleep_learning_engine`
-(uv, venv, ffmpeg en cache, las 14 pistas de ambient, 15 tests pasando).
+This assumes you already have everything installed at
+`D:\proyectos\Proyectos Github\sleeplens` (uv, venv, ffmpeg in
+`cache/`, the ambient library, tests passing).
 
-## Tu caso de uso
+## What you actually do
 
-Vos escribís un `.txt` con el guion en español (o el idioma que quieras),
-lo metés en la app, y sale un MP4. Sin tocar la API, sin la IA generando
-nada. **El tutorial es solo eso.**
+You write a `.txt` file with the script (Spanish, English,
+whatever language you want), feed it to the app, and you get
+back an MP4. No API calls, no AI generation, nothing fancy.
+**That is the whole tutorial.**
 
 ---
 
-## Hacer un video (3 pasos, ~2 min de setup + render)
+## Make a video (3 steps, ~2 min of setup + render)
 
-### 1. Escribí el guion
+### 1. Write the script
 
-Abrí un bloc de notas y guardalo en alguna carpeta, por ejemplo
-`D:\proyectos\Proyectos Github\sleep_learning_engine\output\`.
+Open Notepad (or any text editor) and save the file somewhere,
+for example `D:\proyectos\Proyectos Github\sleeplens\output\`.
 
-Formato: párrafos separados por una línea en blanco. Cada párrafo
-se convierte en un bloque narrado con una pausa entre ellos.
+Format: paragraphs separated by one blank line. Each paragraph
+becomes one narrated block with a pause between blocks.
 
-Ejemplo (`D:\proyectos\Proyectos Github\sleep_learning_engine\output\historia-roma.txt`):
+Example (`D:\proyectos\Proyectos Github\sleeplens\output\rome-history.txt`):
 
 ```
-Bienvenido. Hoy vamos a recorrer dos mil años de historia sin
-prisas, dejando que cada dato se asiente antes de pasar al siguiente.
+Welcome. Today we are going to walk through two thousand years
+of history, slowly, letting each fact settle before moving on.
 
-Roma empezó como un pequeño asentamiento a orillas del río Tíber,
-alrededor del año 753 antes de nuestra era. Sus primeros habitantes
-vivían de la agricultura y el pastoreo.
+Rome started as a small settlement on the banks of the Tiber
+river, around the year 753 BC. Its first inhabitants lived
+from agriculture and herding.
 
-Con el tiempo, esos pastores aprendieron a organizarse. Construyeron
-murallas, eligieron reyes, y aprendieron a defenderse de los pueblos
-vecinos que bajaban desde las montañas en busca de tierras fértiles.
+Over time those shepherds learned to organize. They built
+walls, chose kings, and learned to defend themselves from the
+neighbouring peoples coming down from the mountains in search
+of fertile land.
 
-La República llegó en el año 509 antes de Cristo, cuando los
-romanos decidieron que ya no querían reyes. En su lugar crearon
-una red de magistraturas, cónsules anuales y un Senado que
-representaba a las familias más antiguas.
+The Republic came in 509 BC, when the romans decided they no
+longer wanted kings. In their place they created a network of
+magistracies, annual consuls, and a Senate that represented
+the oldest families.
 ```
 
-Más largo = más duración. ~150 palabras por minuto. **4500 palabras ≈ 30 min.**
+Longer script = longer video. ~150 words per minute. **4500
+words is about 30 minutes.**
 
-### 2. Abrí la app
+### 2. Open the app
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
-uv run python run.py
+cd "D:\proyectos\Proyectos Github\sleeplens"
+uv run python -m sleep_learning_engine gui
 ```
 
-Vas a la pestaña **Topic** y en el campo de abajo del todo
-("Or load a script file") ponés la ruta a tu `.txt`, o usás el
-botón **Browse** y elegís el archivo.
+Go to the **Topic** tab and in the field at the bottom
+("Or load a script file") paste the path to your `.txt`, or
+use the **Browse** button and pick the file.
 
-El textarea grande de arriba lo dejás vacío (no querés que la IA
-genere nada, vos ya trajiste el guion).
+Leave the big textarea on top empty (you do not want the AI to
+generate anything; you already have the script).
 
-### 3. Configurá rápido y dale Render
+### 3. Quick config, then click Render
 
-Ajustes que importan:
+Settings that actually matter:
 
-| Pestaña | Campo | Valor recomendado | Por qué |
-| ------- | ----- | ----------------- | ------- |
-| **Topic** | Pause between paragraphs | `1.8` s | Pausa cómoda para absorber |
+| Tab | Field | Recommended value | Why |
+| --- | ----- | ----------------- | --- |
+| **Topic** | Pause between paragraphs | `1.8` s | Comfortable pause to absorb |
 | **Topic** | Language | `en` | English |
-| **Audio** | Voice (dropdown) | `Aria — warm, conversational female [top pick]` | El dropdown ya tiene 46 voces curadas |
-| **Audio** | TTS Rate | `-10%` | Más lento = más calmado |
-| **Audio** | TTS Pitch | `-2Hz` | Un poco más grave |
-| **Audio** | Ambient bed mode | `auto` | Matchea por keyword (rain, ocean, lofi, etc.) |
-| **Audio** | Bed volume | `0.18` | Ambiente presente pero no tapa la voz |
-| **Audio** | Duck amount | `12` dB | Voz clarísima, ambient baja cuando hablás |
-| **Render** | Output preset | `sleep_720p` o `sleep_1080p` para Full HD | Suficiente para YouTube y podcast |
-| **Render** | Encoder | `auto` | NVENC si tenés NVIDIA, si no libx264 |
+| **Audio** | Voice (dropdown) | `Aria - warm, conversational female [top pick]` | The dropdown already has 46 curated voices |
+| **Audio** | TTS Rate | `-10%` | Slower = calmer |
+| **Audio** | TTS Pitch | `-2Hz` | A little lower |
+| **Audio** | Ambient bed mode | `auto` | Matches by keyword (rain, ocean, lofi, etc.) |
+| **Audio** | Bed volume | `0.18` | Ambient is there but does not cover the voice |
+| **Audio** | Duck amount | `12` dB | Voice stays clear, ambient drops while you talk |
+| **Render** | Output preset | `sleep_720p` or `sleep_1080p` for Full HD | Enough for YouTube and podcast |
+| **Render** | Encoder | `auto` | NVENC if you have NVIDIA, otherwise libx264 |
 
-Lo demás lo dejás como está. Si no querés tocar nada, los defaults
-ya funcionan.
+Leave everything else at default. The defaults work.
 
-**Click "Render video"** y esperás. La barra de progreso te muestra
-qué paso está corriendo (script → voz → timing → ambient → mix →
-visual → encode).
+**Click "Render video"** and wait. The progress bar shows which
+step is running (script -> voice -> timing -> ambient -> mix ->
+visual -> encode).
 
-### 4. Listo, agarrá el MP4
+### 4. Done, grab the MP4
 
-Cuando termina, el sidebar te muestra dónde quedó, qué tan largo es
-y el estado del pipeline. El archivo vive en:
+When it finishes, the sidebar shows where the file is, how long
+it is, and the pipeline state. The file lives at:
 
 ```
-D:\proyectos\Proyectos Github\sleep_learning_engine\output\sleep_learning_engine-1717729384.mp4
+D:\proyectos\Proyectos Github\sleeplens\output\sleep_learning_engine-1717729384.mp4
 ```
 
-El nombre es la timestamp del momento. Si querés un nombre más
-amigable, renombralo desde el explorador de Windows o desde la
-terminal:
+The filename is a timestamp. If you want a friendlier name,
+rename it from Windows Explorer or from the terminal:
 
 ```powershell
-Rename-Item "D:\proyectos\Proyectos Github\sleep_learning_engine\output\sleep_learning_engine-1717729384.mp4" "historia-roma-30m.mp4"
+Rename-Item "D:\proyectos\Proyectos Github\sleeplens\output\sleep_learning_engine-1717729384.mp4" "rome-history-30m.mp4"
 ```
 
-### 4b. Botones del sidebar (de arriba para abajo)
+### 4b. Sidebar buttons (top to bottom)
 
-| Botón | Qué hace |
-| ----- | -------- |
-| **Render full video** | El flujo completo: script → voz → ambient → mix → visual → encode |
-| **Generate script only** | Solo genera el guion y lo guarda como `.txt` en `output/`. Útil para iterar el texto antes de invertir 5 min en renderizar audio + video |
-| **Save settings (API key, model, etc.)** | Persiste TODO (API key, modelo, voz, ambient, output) en `.sleep_learning_engine.toml`. No necesitas renderizar para guardar |
-| **Cancel** | Aparece habilitado durante un render. Cancela limpiamente (los archivos parciales se limpian) |
+| Button | What it does |
+| ------ | ------------ |
+| **Render full video** | The whole flow: script -> voice -> ambient -> mix -> visual -> encode |
+| **Generate script only** | Only generates the script and saves it as `.txt` in `output/`. Useful to iterate the text before spending 5 min on a full render |
+| **Save settings (API key, model, etc.)** | Saves everything (API key, model, voice, ambient, output) to `.sleeplens.toml`. You do not need to render to save |
+| **Cancel** | Becomes enabled during a render. Cancels cleanly (partial files get cleaned up) |
 
 ---
 
-## Generar solo el guion (para iterar rápido)
+## Generate script only (to iterate faster)
 
-Si querés probar varios enfoques del mismo tema sin esperar el
-render completo cada vez, usá **Generate script only**. Te guarda
-el `.txt` en `output/` y te dice la ruta. Después podés:
+If you want to try several versions of the same topic without
+waiting for a full render each time, use **Generate script
+only**. It saves the `.txt` in `output/` and tells you the path.
+After that you can:
 
-- Releerlo y ajustarlo
-- Cargar ese `.txt` en el campo "Or load a script file" de la
-  pestaña Topic
-- Renderizar el video con el guion ya pulido
+- Re-read and tweak it
+- Load that `.txt` in the "Or load a script file" field on
+  the Topic tab
+- Render the video with the polished script
 
-Tiempo típico: 5-15 segundos por iteración de guion, vs 5-10 min
-por render completo.
+Typical time: 5-15 seconds per script iteration, vs 5-10 min
+per full render.
 
 ---
 
-## Atajo: si no querés abrir la GUI
+## Shortcut: do not want to open the GUI
 
-Todo se puede hacer desde la terminal sin abrir la app:
+Everything works from the terminal too, no GUI needed:
 
 ```powershell
-cd "D:\proyectos\Proyectos Github\sleep_learning_engine"
+cd "D:\proyectos\Proyectos Github\sleeplens"
 
-# Lo más simple
-uv run python run.py render --script "D:\proyectos\Proyectos Github\sleep_learning_engine\output\historia-roma.txt"
+# The simplest case
+uv run python -m sleep_learning_engine render --script "D:\proyectos\Proyectos Github\sleeplens\output\rome-history.txt"
 
-# Con nombre de salida personalizado
-uv run python run.py render --script .\output\historia-roma.txt --output-stem historia-roma
+# With a custom output name
+uv run python -m sleep_learning_engine render --script .\output\rome-history.txt --output-stem rome-history
 
-# Con fondo personalizado
-uv run python run.py render --script .\output\historia-roma.txt --background-image D:\fondos\lluvia.jpg --output-stem historia-roma
+# With a custom background
+uv run python -m sleep_learning_engine render --script .\output\rome-history.txt --background-image D:\backgrounds\rain.jpg --output-stem rome-history
 
-# Salida JSON para logs/CI
-uv run python run.py render --script .\output\historia-roma.txt --json
+# JSON output for logs / CI
+uv run python -m sleep_learning_engine render --script .\output\rome-history.txt --json
 ```
 
-El flag `--json` te imprime una línea así, útil si querés loguear
-cuánto tardó:
+The `--json` flag prints one line like this, useful if you want
+to log how long it took:
 
 ```json
-{"status": "ok", "output": "...\\historia-roma.mp4", "duration_seconds": 1820.5, "word_count": 4520, "runtime": "30m 20s"}
+{"status": "ok", "output": "...\\rome-history.mp4", "duration_seconds": 1820.5, "word_count": 4520, "runtime": "30m 20s"}
 ```
 
 ---
 
-## Querés cambiar algo entre videos
+## You want to change something between videos
 
-| Si querés... | Andá a | Tocá |
-| ------------- | ------ | ---- |
-| Voz diferente | Audio tab | Cambiá el dropdown **Voice** (46 curadas, todas en español, inglés, etc.) |
-| Voz custom (no está en el dropdown) | Audio tab | Elegí **Custom...** en el dropdown, escribí el id en el campo de al lado |
-| Otro ambient (lluvia → océano) | Audio tab | Cambiá el campo **Ambient bed mode** a `keyword` o `random` |
-| Sin ambient (solo voz) | Audio tab | **Ambient bed mode** = `disabled` |
-| Más pausas | Topic tab | Subí **Pause between paragraphs** a `2.5` o `3` |
-| Video más largo | Topic tab | Escribí un guion con más palabras |
-| Fondo con imagen/video | Visuals tab | Pegá la ruta o arrastrá el archivo |
-| Resolución 1080p | Render tab | **Output preset** = `sleep_1080p` |
-| Solo audio MP3 | Render tab | **Output preset** = `audio_only` |
-| Cambiar el modelo de IA | Provider tab | Dropdown **Model** (curado por provider); o **Custom...** para escribir uno |
-| Editar el system prompt | Provider tab | Click **Show advanced**, editá el textbox. Si lo dejás vacío, usa el default |
+| If you want to... | Go to | Touch |
+| ----------------- | ----- | ----- |
+| Different voice | Audio tab | Change the **Voice** dropdown (46 curated, in Spanish, English, etc.) |
+| Custom voice (not in the dropdown) | Audio tab | Pick **Custom...** in the dropdown, type the id in the field next to it |
+| Different ambient (rain -> ocean) | Audio tab | Change **Ambient bed mode** to `keyword` or `random` |
+| No ambient (voice only) | Audio tab | **Ambient bed mode** = `disabled` |
+| More pauses | Topic tab | Raise **Pause between paragraphs** to `2.5` or `3` |
+| Longer video | Topic tab | Write a longer script |
+| Background image / video | Visuals tab | Paste the path or drag the file |
+| 1080p resolution | Render tab | **Output preset** = `sleep_1080p` |
+| Audio-only MP3 | Render tab | **Output preset** = `audio_only` |
+| Change the AI model | Provider tab | **Model** dropdown (curated per provider); or **Custom...** to type one |
+| Edit the system prompt | Provider tab | Click **Show advanced**, edit the textbox. If you leave it empty, it uses the default |
 
 ---
 
-## Voces en el dropdown (curadas para sleep)
+## Voices in the dropdown (curated for sleep)
 
-El dropdown **Voice** de la pestaña Audio tiene 46 voces curadas
-de Edge TTS, organizadas por idioma:
+The **Voice** dropdown on the Audio tab has 46 curated Edge TTS
+voices, organized by language:
 
-| Idioma | Cantidad | Top picks |
-| ------ | -------- | --------- |
-| English (US) | 8 | **Aria** (mujer, cálida), **Brian** (hombre, profunda) |
-| English (UK) | 4 | **Ryan** (hombre, audiobook) |
+| Language | Count | Top picks |
+| -------- | ----- | --------- |
+| English (US) | 8 | **Aria** (female, warm), **Brian** (male, deep) |
+| English (UK) | 4 | **Ryan** (male, audiobook) |
 | English (AU / CA / IN / IE) | 5 | Natasha, William, Clara, Neerja, Emily |
 | Spanish (ES / MX / AR) | 5 | Elvira, Laura, Dalia, Jorge, Elena |
 | French (FR / CA) | 3 | Denise, Henri, Sylvie |
@@ -191,158 +194,164 @@ de Edge TTS, organizadas por idioma:
 | Chinese (CN / HK / TW) | 4 | Xiaoxiao, Yunyang, HiuMaan, HsiaoChen |
 | Other | 7 | Korean, Dutch, Polish, Russian, Turkish, etc. |
 
-Si querés una voz que no esté en la lista, elegí **Custom...** en
-el dropdown y escribí el id en el campo de al lado (ej.
+If you want a voice that is not in the list, pick **Custom...**
+in the dropdown and type the id in the field next to it (e.g.
 `en-US-MichelleNeural`).
 
-### Cómo elegir la mejor voz para tu video
+### How to pick the best voice for your video
 
-Ya tenés 17 muestras de audio (10-17 segundos cada una) en
-`output/voice-previews/`. Abrí esa carpeta en el explorador y
-reproducí los MP3 hasta dar con la que más te guste. El id exacto
-que aparece en el nombre del archivo lo buscás en el dropdown.
+You already have 17 audio samples (10-17 seconds each) in
+`output/voice-previews/`. Open that folder in Windows Explorer
+and play the MP3s until you find one you like. The exact id is
+in the filename; look it up in the dropdown.
 
-Si querés regenerarlas o probar más:
+If you want to regenerate them or try more:
 
 ```powershell
-# Regenerar todas
+# Regenerate all of them
 uv run python scripts/voice_preview.py
 
-# Probar una sola voz
+# Try a single voice
 uv run python scripts/voice_preview.py --voice en-US-BrianNeural
 
-# Probar con tu propio texto
+# Try your own text
 uv run python scripts/voice_preview.py --text "The story of jazz, told slowly and calmly."
 ```
 
-### Ajustes finos por voz (top picks)
+### Fine-tuning per voice (top picks)
 
-Todas las muestras están grabadas con **rate `-10%`** y **pitch `-2Hz`**.
-Si querés afinar más:
+All samples are recorded with **rate `-10%`** and **pitch `-2Hz`**.
+If you want to fine-tune more:
 
-| Voice | Rate | Pitch | Por qué |
-| ----- | ---- | ----- | ------- |
-| `en-US-AriaNeural` | `-10%` | `-2Hz` | Default cálido |
-| `en-US-BrianNeural` | `-8%` | `-3Hz` | Ya es grave, no exagerar |
-| `en-US-EmmaNeural` | `-15%` | `0Hz` | Ya es susurrada, no pitch down |
+| Voice | Rate | Pitch | Why |
+| ----- | ---- | ----- | --- |
+| `en-US-AriaNeural` | `-10%` | `-2Hz` | Warm default |
+| `en-US-BrianNeural` | `-8%` | `-3Hz` | Already deep, do not overdo it |
+| `en-US-EmmaNeural` | `-15%` | `0Hz` | Already a whisper, no pitch down |
 | `en-US-AndrewNeural` | `-12%` | `-2Hz` | Audiobook pace |
 | `en-GB-RyanNeural` | `-10%` | `-2Hz` | Default |
 
 ---
 
-## Modelos de IA (Provider tab)
+## AI models (Provider tab)
 
-El dropdown **Model** muestra los modelos más comunes para el
-proveedor seleccionado. Cambia solo cuando cambiás de provider.
+The **Model** dropdown shows the most common models for the
+selected provider. It only changes when you change the provider.
 
-| Provider | Modelos curados |
-| -------- | --------------- |
+| Provider | Curated models |
+| -------- | -------------- |
 | NVIDIA NIM (default) | DeepSeek V4, DeepSeek R1, Llama 3.1 70B, Llama 3.1 8B, Mistral Large 2, Qwen 2.5 72B |
 | OpenAI | GPT-4o mini, GPT-4o, GPT-4.1 mini, GPT-4.1, o1-mini, o1-preview |
 | Anthropic (via proxy) | Claude Sonnet 4.5, Claude Opus 4, Claude Haiku 4 |
 | Ollama (local) | Llama 3.1, Llama 3.2, Mistral, Qwen 2.5, Phi-3 |
 | LM Studio (local) | local-model |
-| Custom | lo que vos pongas |
+| Custom | Whatever you type |
 
-Si querés un modelo que no está, elegí **Custom...** y escribí
-el id en el campo de al lado. Click **Load model list from
-provider** para que el provider te devuelva su lista actual y se
-fusione con la curada.
+If you want a model that is not in the list, pick **Custom...**
+and type the id in the field next to it. Click **Load model
+list from provider** to have the provider return its current
+list and merge it with the curated one.
 
 ---
 
-## System prompt (avanzado)
+## System prompt (advanced)
 
-Por default la IA escribe con un tono calmado, en segunda persona,
-con pausas entre párrafos. Si querés cambiar el tono (más formal,
-más corto, más poético, en otro estilo):
+By default the AI writes in a calm tone, second person, with
+pauses between paragraphs. If you want to change the tone
+(more formal, shorter, more poetic, in a different style):
 
-1. Pestaña **Provider**
+1. **Provider** tab
 2. Click **Show advanced (system prompt)**
-3. Editá el textbox con tus instrucciones
+3. Edit the textbox with your instructions
 
-Si lo dejás vacío, usa el default. Si lo llenás, sobreescribe el
-default para esa sesión (se guarda en `.sleep_learning_engine.toml`).
+If you leave it empty, it uses the default. If you fill it in,
+it overrides the default for that session (saved in
+`.sleeplens.toml`).
 
 ---
 
 ## Troubleshooting express
 
-**Tarda mucho en renderizar**
-- Normal para videos largos. ~5-10 min por hora de video con NVENC.
-- Si tenés NVIDIA, la pestaña Render debería mostrar NVENC
-  automáticamente. Fijate en el log.
-- Si usás CPU (libx264), puede ser 2-3x más lento. Está bien.
+**Render takes a long time**
+- Normal for long videos. ~5-10 min per hour of video with NVENC.
+- If you have NVIDIA, the Render tab should show NVENC
+  automatically. Check the log.
+- If you are on CPU (libx264), it can be 2-3x slower. That is
+  fine.
 
-**`Cannot load nvcuda.dll` o `Error opening encoder` en el log**
-- Tu ffmpeg tiene NVENC compilado pero no tenés el runtime de CUDA
-  instalado. La app ahora detecta esto automáticamente: si el
-  encoder falla en el primer frame, hace fallback a `libx264` y
-  termina el render. Fijate en el log, debería decir
+**`Cannot load nvcuda.dll` or `Error opening encoder` in the log**
+- Your ffmpeg was built with NVENC but you do not have the
+  CUDA runtime installed. The app detects this automatically:
+  if the encoder fails on the first frame, it falls back to
+  `libx264` and finishes the render. The log should say
   `Encoder h264_nvenc failed at init ... Retrying with libx264.`
-- Si querés acelerar con GPU de verdad, instalá los drivers
-  actuales de NVIDIA + CUDA runtime. Mientras tanto, dejá el
-  selector de encoder en `auto` y la app resuelve sola.
+- If you want real GPU speed, install current NVIDIA drivers
+  + the CUDA runtime. In the meantime leave the encoder
+  selector at `auto` and the app handles it.
 
-**`ffmpeg exited with code 4294967284` o `Cannot allocate memory`**
-- Tu equipo se quedó sin RAM. La encode 1080p necesita ~700 MB
-  libres y el filtro `geq` (barra de progreso) suma otros 150 MB.
-  En un equipo con 8 GB de RAM total y Windows + navegador
-  abiertos, no queda espacio.
-- **Solución rápida:** bajá la resolución a 720p en la pestaña
-  Render (4x menos memoria para el filter graph) y bajá el
-  preset de libx264 a `ultrafast`. La encode termina a costa de
-  un poco de calidad pero el video sale completo.
-- **Solución nube:** corré el render en Google Colab (gratis).
-  Tirá `python -m sleep_learning_engine cloud` desde la carpeta del proyecto
-  y abrí la URL. El notebook tiene T4 GPU + 12.7 GB de RAM, y
-  termina la encode 1080p en 1-2 minutos con NVENC real.
+**`ffmpeg exited with code 4294967284` or `Cannot allocate memory`**
+- Your machine ran out of RAM. The 1080p encode needs ~700 MB
+  free and the `geq` filter (progress bar) adds another
+  150 MB. On a machine with 8 GB total and Windows + browser
+  open, there is no room.
+- **Quick fix:** lower the resolution to 720p on the Render
+  tab (4x less memory for the filter graph) and lower the
+  libx264 preset to `ultrafast`. The encode finishes at the
+  cost of a little quality but the video comes out complete.
+- **Cloud fix:** run the render on Google Colab (free). Run
+  `python -m sleep_learning_engine cloud` from the project
+  folder and open the URL. The notebook has T4 GPU + 12.7 GB
+  of RAM, and finishes the 1080p encode in 1-2 minutes with
+  real NVENC.
 
-**La voz suena rara o muy rápida**
-- Bajá **TTS Rate** a `-15%` o `-20%`.
-- Cambiá **Voice** a otra. Probá `es-ES-LauraNeural` o `es-AR-ElenaNeural`.
+**Voice sounds weird or too fast**
+- Lower **TTS Rate** to `-15%` or `-20%`.
+- Change **Voice** to another one. Try `es-ES-LauraNeural`
+  or `es-AR-ElenaNeural`.
 
-**El ambient no aparece**
-- Abrí `assets\ambient\` y verificá que estén los 14 archivos
-  `.ogg`. Si está vacío, corré una vez:
+**Ambient does not show up**
+- Open `assets\ambient\` and check the 14 `.ogg` files are
+  there. If the folder is empty, run once:
   `uv run python scripts\generate_ambient.py`
-- Si querés que el generador **deje las pistas al mismo volumen**
-  (importante: el mixer hace duck/unduck, y si una pista está 6 dB
-  más alta que otra te despertás), agregá `--normalize`:
+- If you want the generator to **leave the tracks at the same
+  volume** (important: the mixer does duck/unduck, and if one
+  track is 6 dB louder than another it will wake you up), add
+  `--normalize`:
   `uv run python scripts\generate_ambient.py --normalize`
 
-**Quiero que el ambient varíe, no siempre la misma pista**
-- Por default, sleep_learning_engine arma un **playlist aleatorio sin
-  repetición** con las pistas que matchean los keywords del
-  script. Cada pista suena una vez antes de que el ciclo
-  completo se repita, así un video de 6 horas no es la misma
-  pista 360 veces.
-- Si querés forzar el comportamiento (auto / keyword / random /
-  disabled), cambiá **Ambient bed mode** en la pestaña Audio.
+**I want the ambient to vary, not always the same track**
+- By default, sleep_learning_engine builds a **shuffled
+  no-repeat playlist** with the tracks that match the script
+  keywords. Each track plays once before the full cycle
+  repeats, so a 6-hour video is not the same track 360 times.
+- If you want to force a behaviour (auto / keyword / random /
+  disabled), change **Ambient bed mode** in the Audio tab.
 
-**Quiero ver el log detallado de un error**
-- Está en `D:\proyectos\Proyectos Github\sleep_learning_engine\logs\sleep_learning_engine.log`
-  (rota a 5 MB con 5 archivos de historia).
+**I want the detailed log of an error**
+- It is at
+  `D:\proyectos\Proyectos Github\sleeplens\logs\sleep_learning_engine.log`
+  (rotates at 5 MB with 5 history files).
 
-**Quiero resetear todos los ajustes a default**
-- Borrá `D:\proyectos\Proyectos Github\sleep_learning_engine\.sleep_learning_engine.toml`.
-  La próxima vez que abras la app arranca limpia.
+**I want to reset all settings to default**
+- Delete
+  `D:\proyectos\Proyectos Github\sleeplens\.sleeplens.toml`.
+  The next time you open the app it starts clean.
 
 ---
 
-## Tu setup en una línea
+## Your setup in one block
 
 ```
-D:\proyectos\Proyectos Github\sleep_learning_engine\
-  .venv\                <- venv manejado por uv
-  cache\ffmpeg.exe      <- binario ffmpeg
-  assets\ambient\       <- 14 pistas procedurales (rain, lofi, etc.)
-  output\               <- donde caen tus MP4 finales
-  output\voice-previews <- 17 muestras de voz para elegir tu favorita
-  logs\                 <- log rotado para debug
-  docs\USER_GUIDE.md    <- tutorial genérico para nuevos usuarios
-  docs\MI_TUTORIAL.md   <- este archivo
+D:\proyectos\Proyectos Github\sleeplens\
+  .venv\                <- venv managed by uv
+  cache\ffmpeg.exe      <- ffmpeg binary
+  assets\ambient\       <- procedural tracks (rain, lofi, etc.)
+  output\               <- where your final MP4s land
+  output\voice-previews <- voice samples to pick your favourite
+  logs\                 <- rotated log for debug
+  docs\USER_GUIDE.md    <- generic tutorial for new users
+  docs\MI_TUTORIAL.md   <- this file
 ```
 
-Listo, con esto podés producir videos en piloto automático.
-El setup está hecho, solo falta el contenido.
+That is it. With this you can produce videos on autopilot.
+The setup is done, only the content is missing.
