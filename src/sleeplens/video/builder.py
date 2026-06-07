@@ -56,16 +56,67 @@ class HardwareChoice:
     extra_flags: tuple[str, ...]
 
 
+def _verify_encoder_works(ffmpeg_bin: Path, encoder: str) -> bool:
+    """Canary-encode a single black frame to confirm the encoder initializes.
+
+    ffmpeg can list ``h264_nvenc`` as an encoder even when the CUDA
+    runtime is not installed (no ``nvcuda.dll`` on Windows, no
+    ``libcuda.so`` on Linux). The probe then fails at init time with
+    "Cannot load nvcuda.dll" after the user has already waited minutes
+    for TTS + mix. This helper runs a one-frame canary so we catch
+    the failure at hardware-pick time, not 5 minutes later.
+    """
+    cmd = [
+        str(ffmpeg_bin),
+        "-y",
+        "-hide_banner",
+        "-loglevel", "error",
+        "-f", "lavfi",
+        "-i", "color=black:size=64x64:duration=0.04",
+        "-frames:v", "1",
+        "-c:v", encoder,
+        "-f", "null",
+        "-",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        log.warning("Canary encode for {} failed to launch: {}", encoder, exc)
+        return False
+    if result.returncode != 0:
+        # Surface only the meaningful tail of the error, not the
+        # ffmpeg version banner.
+        tail = "\n".join(
+            line for line in result.stderr.splitlines() if "configuration" not in line
+        )[-300:]
+        log.warning("Canary encode for {} failed: {}", encoder, tail.strip())
+        return False
+    return True
+
+
 def pick_hardware(choice: str, ffmpeg_bin: Path) -> HardwareChoice:
-    """Select an encoder. Probes the binary if ``choice`` is ``auto``."""
+    """Select an encoder. Probes the binary if ``choice`` is ``auto``.
+
+    The auto path goes through every HW encoder in priority order
+    (NVENC, QuickSync, AMF) and picks the first one that survives a
+    canary encode. Encoders that ffmpeg lists but cannot actually
+    initialize (e.g. NVENC without the CUDA runtime) are skipped.
+    """
+    libx264 = HardwareChoice(
+        "libx264",
+        # `veryfast` keeps reference-frame memory low; on a 7-8 GB Windows
+        # box the default `medium` preset OOMs the filter graph for 1080p
+        # because the lookahead + bframes pool is too large.
+        ("-preset", "ultrafast", "-crf", "22", "-tune", "zerolatency"),
+    )
     if choice and choice != "auto":
         mapping = {
             "nvenc": HardwareChoice("h264_nvenc", ("-preset", "p4", "-rc", "vbr", "-b:v", "4M")),
             "qsv": HardwareChoice("h264_qsv", ("-preset", "medium", "-b:v", "4M")),
             "amf": HardwareChoice("h264_amf", ("-quality", "balanced", "-b:v", "4M")),
-            "libx264": HardwareChoice("libx264", ("-preset", "medium", "-crf", "20")),
+            "libx264": libx264,
         }
-        return mapping.get(choice, mapping["libx264"])
+        return mapping.get(choice, libx264)
 
     # Probe encoders.
     try:
@@ -78,15 +129,15 @@ def pick_hardware(choice: str, ffmpeg_bin: Path) -> HardwareChoice:
         encoders = result.stdout
     except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
         log.warning("Could not probe encoders ({}). Falling back to libx264.", exc)
-        return HardwareChoice("libx264", ("-preset", "medium", "-crf", "20"))
+        return libx264
 
-    if "h264_nvenc" in encoders:
+    if "h264_nvenc" in encoders and _verify_encoder_works(ffmpeg_bin, "h264_nvenc"):
         return HardwareChoice("h264_nvenc", ("-preset", "p4", "-rc", "vbr", "-b:v", "4M"))
-    if "h264_qsv" in encoders:
+    if "h264_qsv" in encoders and _verify_encoder_works(ffmpeg_bin, "h264_qsv"):
         return HardwareChoice("h264_qsv", ("-preset", "medium", "-b:v", "4M"))
-    if "h264_amf" in encoders:
+    if "h264_amf" in encoders and _verify_encoder_works(ffmpeg_bin, "h264_amf"):
         return HardwareChoice("h264_amf", ("-quality", "balanced", "-b:v", "4M"))
-    return HardwareChoice("libx264", ("-preset", "medium", "-crf", "20"))
+    return libx264
 
 
 # ------------------------------------------------------------- progress bar
@@ -229,8 +280,33 @@ def build(spec: VideoSpec) -> Path:
     log.debug("ffmpeg build command: {}", " ".join(shlex.quote(str(c)) for c in cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        log.error("ffmpeg render failed: {}", result.stderr[-2000:])
-        raise RenderError(f"ffmpeg exited with code {result.returncode}.")
+        # Last-chance defence: if the user picked 'auto' and the chosen
+        # HW encoder failed at init (e.g. nvcuda.dll missing after a
+        # driver update), retry once with libx264 so a 5-minute render
+        # does not die on the final step.
+        if spec.hardware_accel == "auto" and hw.encoder != "libx264":
+            tail = "\n".join(
+                line for line in result.stderr.splitlines()
+                if "configuration" not in line
+            )[-300:]
+            log.warning(
+                "Encoder {} failed at init: {}. Retrying with libx264.",
+                hw.encoder, tail.strip(),
+            )
+            libx264 = HardwareChoice("libx264", ("-preset", "ultrafast", "-crf", "22", "-tune", "zerolatency"))
+            for i, token in enumerate(cmd):
+                if token == "-c:v":
+                    cmd[i + 1] = libx264.encoder
+                    cmd[i + 2 : i + 2 + len(libx264.extra_flags)] = libx264.extra_flags
+                    break
+            log.debug("ffmpeg build (fallback libx264) command: {}",
+                      " ".join(shlex.quote(str(c)) for c in cmd))
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                log.warning("Fallback to libx264 succeeded; final render OK.")
+        if result.returncode != 0:
+            log.error("ffmpeg render failed: {}", result.stderr[-2000:])
+            raise RenderError(f"ffmpeg exited with code {result.returncode}.")
     if not spec.output_path.exists() or spec.output_path.stat().st_size == 0:
         raise RenderError("ffmpeg produced an empty output file.")
     log.info("Render complete: {}", spec.output_path)

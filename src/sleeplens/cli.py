@@ -33,6 +33,27 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("gui", help="Launch the desktop studio (default).").set_defaults(func=_cmd_gui)
     sub.add_parser("providers", help="List the bundled provider presets.").set_defaults(func=_cmd_providers)
 
+    cloud = sub.add_parser(
+        "cloud",
+        help="Open the low-RAM Colab notebook for cloud rendering.",
+    )
+    cloud.add_argument(
+        "--repo",
+        default="fernandojjq/sleeplens",
+        help="GitHub repo (default: fernandojjq/sleeplens).",
+    )
+    cloud.add_argument(
+        "--branch",
+        default="main",
+        help="Git branch (default: main).",
+    )
+    cloud.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Print the Colab URL instead of opening the browser.",
+    )
+    cloud.set_defaults(func=_cmd_cloud)
+
     render = sub.add_parser("render", help="Run a render from the command line.")
     render.add_argument("--topic", help="Script topic (overrides settings.script_topic).")
     render.add_argument("--script", help="Path to a script file (overrides settings.script_file).")
@@ -63,6 +84,66 @@ def _cmd_providers(args: argparse.Namespace) -> int:
 
     for preset in PROVIDER_PRESETS:
         print(f"{preset.id}\t{preset.label}\t{preset.base_url}\t{preset.default_model}")
+    return 0
+
+
+def _cmd_cloud(args: argparse.Namespace) -> int:
+    """Print (and optionally open) the Colab URL for low-RAM cloud rendering.
+
+    The notebook is checked into the repo and runs the full sleeplens
+    pipeline on a free Colab T4 GPU (NVENC + 12.7 GB RAM). It is the
+    right fallback when the local machine runs out of memory during the
+    final 1080p encode.
+    """
+    from .config import load_settings, resolve_paths
+
+    paths = resolve_paths()
+    settings = load_settings(paths.config_file)
+
+    notebook_path = "docs/cloud/low_ram_render.ipynb"
+    url = (
+        f"https://colab.research.google.com/github/{args.repo}/"
+        f"blob/{args.branch}/{notebook_path}"
+    )
+
+    print("Sleeplens low-RAM cloud render")
+    print("=" * 60)
+    print()
+    print(f"Notebook:  {url}")
+    print()
+    print("Quick checks before you click the link:")
+    script_ok = bool(settings.script_topic or settings.script_file)
+    image_ok = bool(
+        settings.background_image
+        and Path(settings.background_image).exists()
+        if settings.background_image
+        else False
+    )
+    print(f"  Script source: {'OK' if script_ok else 'MISSING'}")
+    if script_ok and settings.script_file:
+        print(f"    -> {settings.script_file}")
+    if script_ok and settings.script_topic:
+        print(f"    -> topic: {settings.script_topic!r}")
+    print(f"  Background image: {'OK' if image_ok else 'MISSING'}")
+    if image_ok:
+        print(f"    -> {settings.background_image}")
+    print()
+    print("Steps:")
+    print("  1. Open the URL above in your browser.")
+    print("  2. Click *Runtime -> Run all* (or press Ctrl+F9).")
+    print("  3. The upload cell will ask for your script file and image.")
+    print("  4. The render cell will run the full pipeline (~5 min).")
+    print("  5. The download cell will save the MP4 to your machine.")
+    print()
+    print("See docs/CLOUD_RENDER.md for the full guide.")
+
+    if not args.no_browser:
+        import webbrowser
+        try:
+            webbrowser.open(url)
+        except Exception as exc:  # pragma: no cover - browser launch varies
+            print(f"(Could not launch browser automatically: {exc})")
+
     return 0
 
 

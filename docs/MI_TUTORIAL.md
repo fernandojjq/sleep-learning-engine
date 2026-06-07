@@ -274,6 +274,30 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
   automáticamente. Fijate en el log.
 - Si usás CPU (libx264), puede ser 2-3x más lento. Está bien.
 
+**`Cannot load nvcuda.dll` o `Error opening encoder` en el log**
+- Tu ffmpeg tiene NVENC compilado pero no tenés el runtime de CUDA
+  instalado. La app ahora detecta esto automáticamente: si el
+  encoder falla en el primer frame, hace fallback a `libx264` y
+  termina el render. Fijate en el log, debería decir
+  `Encoder h264_nvenc failed at init ... Retrying with libx264.`
+- Si querés acelerar con GPU de verdad, instalá los drivers
+  actuales de NVIDIA + CUDA runtime. Mientras tanto, dejá el
+  selector de encoder en `auto` y la app resuelve sola.
+
+**`ffmpeg exited with code 4294967284` o `Cannot allocate memory`**
+- Tu equipo se quedó sin RAM. La encode 1080p necesita ~700 MB
+  libres y el filtro `geq` (barra de progreso) suma otros 150 MB.
+  En un equipo con 8 GB de RAM total y Windows + navegador
+  abiertos, no queda espacio.
+- **Solución rápida:** bajá la resolución a 720p en la pestaña
+  Render (4x menos memoria para el filter graph) y bajá el
+  preset de libx264 a `ultrafast`. La encode termina a costa de
+  un poco de calidad pero el video sale completo.
+- **Solución nube:** corré el render en Google Colab (gratis).
+  Tirá `python -m sleeplens cloud` desde la carpeta del proyecto
+  y abrí la URL. El notebook tiene T4 GPU + 12.7 GB de RAM, y
+  termina la encode 1080p en 1-2 minutos con NVENC real.
+
 **La voz suena rara o muy rápida**
 - Bajá **TTS Rate** a `-15%` o `-20%`.
 - Cambiá **Voice** a otra. Probá `es-ES-LauraNeural` o `es-AR-ElenaNeural`.
