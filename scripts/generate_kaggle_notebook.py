@@ -90,7 +90,7 @@ cells = [
         "# the tarball URL (not a git clone) because Kaggle's pip does",
         "# not always have working git credentials. The tarball is a",
         "# plain HTTPS download.",
-        "!pip install -q https://github.com/fernandojjq/sleeplens/archive/refs/heads/main.tar.gz",
+        "!pip install -q https://github.com/fernandojjq/sleep-learning-engine/archive/refs/heads/main.tar.gz",
         "",
         "# Confirm ffmpeg is present and NVENC is exposed. Kaggle's",
         "# base image ships a recent ffmpeg with the NVIDIA codec",

@@ -62,7 +62,7 @@ cells = [
     code(
         "# 1. Install sleep_learning_engine and its dependencies. Pulls from the public",
         "# GitHub repo, so this only needs an internet connection.",
-        '!pip install -q "sleep_learning_engine @ git+https://github.com/fernandojjq/sleep_learning_engine.git"',
+        '!pip install -q https://github.com/fernandojjq/sleep-learning-engine/archive/refs/heads/main.tar.gz',
         "",
         "# Colab's system ffmpeg already includes NVENC and CUDA; no need to",
         "# apt-get install a custom build. We still probe it to confirm.",
