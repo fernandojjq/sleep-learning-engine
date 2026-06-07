@@ -57,14 +57,23 @@ class HardwareChoice:
 
 
 def _verify_encoder_works(ffmpeg_bin: Path, encoder: str) -> bool:
-    """Canary-encode a single black frame to confirm the encoder initializes.
+    """Canary-encode a short black clip to confirm the encoder initializes.
 
     ffmpeg can list ``h264_nvenc`` as an encoder even when the CUDA
     runtime is not installed (no ``nvcuda.dll`` on Windows, no
     ``libcuda.so`` on Linux). The probe then fails at init time with
     "Cannot load nvcuda.dll" after the user has already waited minutes
-    for TTS + mix. This helper runs a one-frame canary so we catch
+    for TTS + mix. This helper runs a one-second canary so we catch
     the failure at hardware-pick time, not 5 minutes later.
+
+    The probe uses 128x128 (above any encoder's minimum), one full
+    second at 24 fps (24 frames - enough for proper frame timing
+    and B-frame reordering, unlike the previous 0.04s/1-frame
+    probe that some NVENC drivers reject with "Frame Dimension
+    less than the minimum supported value"), and explicit
+    ``-pix_fmt yuv420p`` (which the H.264 spec requires for
+    baseline profile and which some encoders default to a different
+    format that their own probe path does not understand).
     """
     cmd = [
         str(ffmpeg_bin),
@@ -72,9 +81,10 @@ def _verify_encoder_works(ffmpeg_bin: Path, encoder: str) -> bool:
         "-hide_banner",
         "-loglevel", "error",
         "-f", "lavfi",
-        "-i", "color=black:size=64x64:duration=0.04",
-        "-frames:v", "1",
+        "-i", "color=black:size=128x128:rate=24:duration=1",
         "-c:v", encoder,
+        "-pix_fmt", "yuv420p",
+        "-bf", "0",  # no B-frames in the canary; simpler for the probe
         "-f", "null",
         "-",
     ]
