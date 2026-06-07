@@ -66,14 +66,21 @@ def _verify_encoder_works(ffmpeg_bin: Path, encoder: str) -> bool:
     for TTS + mix. This helper runs a one-second canary so we catch
     the failure at hardware-pick time, not 5 minutes later.
 
-    The probe uses 128x128 (above any encoder's minimum), one full
-    second at 24 fps (24 frames - enough for proper frame timing
-    and B-frame reordering, unlike the previous 0.04s/1-frame
-    probe that some NVENC drivers reject with "Frame Dimension
-    less than the minimum supported value"), and explicit
-    ``-pix_fmt yuv420p`` (which the H.264 spec requires for
-    baseline profile and which some encoders default to a different
-    format that their own probe path does not understand).
+    The probe uses 256x256. NVENC's H.264 encoder rejects any frame
+    whose width OR height is below 145 px (NV_ENC_CAPS_WIDTH_MIN /
+    NV_ENC_CAPS_HEIGHT_MIN; ref FFmpeg trac #9251, where 144x144 fails
+    and 145x145 succeeds) with "Frame Dimension less than the minimum
+    supported value". The earlier 64x64 and 128x128 probes were BOTH
+    under that floor, so the canary failed on perfectly healthy NVENC
+    hardware (e.g. a Colab T4) and the pipeline fell back to libx264.
+    256x256 clears the floor with margin and is still tiny to encode.
+    The real encodes (720p/1080p) are always far above the floor, so
+    this only ever mattered for the canary, never the actual render.
+
+    We also pass one full second at 24 fps (24 frames - enough for
+    B-frame reordering) and explicit ``-pix_fmt yuv420p`` (H.264
+    baseline expects it; some encoders default to a format their own
+    probe path cannot handle).
     """
     cmd = [
         str(ffmpeg_bin),
@@ -81,7 +88,7 @@ def _verify_encoder_works(ffmpeg_bin: Path, encoder: str) -> bool:
         "-hide_banner",
         "-loglevel", "error",
         "-f", "lavfi",
-        "-i", "color=black:size=128x128:rate=24:duration=1",
+        "-i", "color=black:size=256x256:rate=24:duration=1",
         "-c:v", encoder,
         "-pix_fmt", "yuv420p",
         "-bf", "0",  # no B-frames in the canary; simpler for the probe

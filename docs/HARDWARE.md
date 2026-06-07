@@ -17,7 +17,7 @@ if you have not yet decided between local and cloud.
 
 ## "auto" mode
 
-`auto` runs a one-frame canary encode for each candidate (NVENC,
+`auto` runs a one-second canary encode for each candidate (NVENC,
 QSV, AMF) in order. The first one that initializes successfully
 wins. ffmpeg's `h264_nvenc` entry in `-encoders` proves the encoder
 is **compiled in**, not that it can **initialize** - the canary
@@ -26,9 +26,34 @@ is too old. On a 8 GB Windows laptop with no discrete GPU, the
 canary chain falls through to `libx264`.
 
 If the chosen HW encoder also fails at full encode time (rare, but
-some Intel QSV builds pass the 1-frame canary on software
-emulation and then choke at scale), the build retries once with
-`libx264` and surfaces a warning in the log.
+some Intel QSV builds pass the canary on software emulation and
+then choke at scale), the build retries once with `libx264` and
+surfaces a warning in the log.
+
+### NVENC H.264 minimum dimension (145 px)
+
+NVENC's H.264 encoder enforces a hard minimum of 145 pixels per
+axis (the `NV_ENC_CAPS_WIDTH_MIN` / `NV_ENC_CAPS_HEIGHT_MIN`
+caps). A frame whose width OR height is below 145 px is rejected
+at init with:
+
+```
+[h264_nvenc @ 0x...] InitializeEncoder failed: invalid param (8):
+Frame Dimension less than the minimum supported value.
+```
+
+The reference is FFmpeg trac ticket #9251, where 144x144 fails
+and 145x145 succeeds. The canary in `_verify_encoder_works`
+therefore uses `size=256x256:rate=24:duration=1` - comfortably
+above the floor with margin, and still tiny to encode. The real
+project renders (720p / 1080p) are always far above the floor, so
+this constraint only ever affects the canary probe itself, never
+the actual video.
+
+Do not shrink the canary below 256x256. 64x64 and 128x128 both
+trigger the floor and the canary will then reject perfectly
+healthy NVENC hardware, sending the pipeline to the much slower
+`libx264` fallback.
 
 ## Verifying your setup
 
@@ -38,10 +63,12 @@ uv run cache/ffmpeg.exe -hide_banner -encoders | findstr h264
 
 # Canary-style probe. Replace the encoder name with yours.
 uv run cache/ffmpeg.exe -y -hide_banner -loglevel error \
-  -f lavfi -i "color=black:size=64x64:duration=0.04" \
-  -frames:v 1 -c:v h264_nvenc -f null -
+  -f lavfi -i "color=black:size=256x256:rate=24:duration=1" \
+  -c:v h264_nvenc -pix_fmt yuv420p -bf 0 -f null -
 # Exit 0 = encoder works. Non-zero with "Cannot load nvcuda.dll"
 # = CUDA runtime missing, switch to libx264.
+# Non-zero with "Frame Dimension less than the minimum" = probe
+# is below the 145 px NVENC minimum, bump size up.
 ```
 
 ## When to flip to 720p

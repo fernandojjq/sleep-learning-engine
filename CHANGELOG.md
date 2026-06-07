@@ -108,15 +108,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   duration=0.04 -frames:v 1`. Some NVENC drivers reject this
   with "Frame Dimension less than the minimum supported value"
   (the 0.04s duration with 1 forced frame confuses the
-  driver's timing logic). The probe now uses 128x128, 1 second
+  driver's timing logic). The probe now uses 256x256, 1 second
   at 24 fps (24 frames - enough for proper frame timing and
   B-frame reordering), explicit `-pix_fmt yuv420p` (H.264
   baseline requirement that some encoder defaults miss), and
   `-bf 0` (no B-frames in the canary). Slightly slower
   (~1-2s instead of <0.5s) but actually reports the truth
-  about the encoder. Without this fix, a real T4 was being
-  rejected by the canary and the pipeline fell through to
-  libx264 CPU encoding, which is 5-10x slower.
+  about the encoder. **The 256x256 dimension is the key fix.**
+  NVENC's H.264 encoder enforces a hard minimum of 145 pixels
+  per axis (`NV_ENC_CAPS_WIDTH_MIN` / `NV_ENC_CAPS_HEIGHT_MIN`,
+  FFmpeg trac #9251: 144x144 fails, 145x145 succeeds). The
+  earlier 64x64 and 128x128 probes were both under that floor,
+  so the canary kept rejecting perfectly healthy NVENC
+  hardware (e.g. a Colab T4) and the pipeline fell through to
+  libx264 CPU encoding, which is 5-10x slower. 256x256 clears
+  the floor with 111 px of margin and is still tiny to encode.
+  The 720p / 1080p real encodes were always far above the
+  floor, so this constraint only ever affected the canary
+  probe itself, never the actual video.
 - **3 cloud-notebook issues caught during a real Colab Pro
   run:**
     1. The GPU check cell 1 used to print `"NVENC available:"`
@@ -204,7 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   cycle math, deterministic seeding, keyword filtering, fallback
   to the full library, and edge cases (empty library, zero
   duration).
-- 38/38 tests green as of this entry. 5/5 cells in each of
+- 39/39 tests green as of this entry. 5/5 cells in each of
   the Colab and Kaggle notebooks parse with `ast.parse`.
 
 ## 0.1.0 (2026-06-06)

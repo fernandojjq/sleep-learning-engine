@@ -1,160 +1,171 @@
-# Colab Pro + NVENC: estado actual del problema
+# Colab Pro + NVENC: root cause identified
 
-Fecha: 2026-06-07.
+Date: 2026-06-07.
 
-## Qué queremos lograr
+## What we wanted
 
-Renderizar un video de 6 minutos 54 segundos (414.8 segundos, 9954
-frames a 24 fps), 1920×1080, H.264, con audio AAC, en una instancia
-**Colab Pro con GPU T4**, usando el codificador de hardware **NVENC**
-del T4 para que el encode termine en 1-2 minutos en vez de los
-~10-15 minutos que tardaría por CPU.
+Render a 6 minute 54 second (414.8 seconds, 9954 frames at 24 fps),
+1920x1080, H.264 video with AAC audio on a **Colab Pro T4** instance,
+using the T4's **NVENC** hardware encoder so the encode finishes in
+1-2 minutes instead of the ~10-15 minutes libx264 would take on CPU.
 
-## Estado actual
+## Root cause
 
-El pipeline `sleep_learning_engine render` corre hasta la fase de
-encode y luego se queda colgado o falla. El log termina con esto:
+NVENC's H.264 encoder enforces a hard minimum of 145 pixels per axis
+(`NV_ENC_CAPS_WIDTH_MIN` / `NV_ENC_CAPS_HEIGHT_MIN`). The reference
+is FFmpeg trac ticket #9251, where 144x144 fails with:
 
 ```
-20:47:51 | WARNING  | builder:_verify_encoder_works - Canary encode
-                  for h264_nvenc failed:
-  [h264_nvenc @ 0x5c03e1b7d740] InitializeEncoder failed:
-  invalid param (8): Frame Dimension less than the minimum
-  supported value.
-  Error initializing output stream 0:0 -- Error while opening
-  encoder for output stream #0:0 - maybe incorrect parameters
-  such as bit_rate, rate, width or height
-
-20:47:51 | WARNING  | builder:_verify_encoder_works - Canary encode
-                  for h264_qsv failed:
-  [h264_qsv @ 0x557ed32c4740] Error initializing an internal MFX
-  session: unsupported (-3)
-  Error initializing output stream 0:0 -- Error while opening
-  encoder for output stream #0:0 - maybe incorrect parameters
-  such as bit_rate, rate, width or height
+[h264_nvenc @ 0x...] InitializeEncoder failed: invalid param (8):
+Frame Dimension less than the minimum supported value.
 ```
 
-Lo que significa en la práctica:
-- El canary de NVENC falla, así que el pipeline NO elige `h264_nvenc`
-- El canary de QSV falla (esperado, T4 no es Intel)
-- Después del log que mostrás, el pipeline sigue intentando AMF
-  y `libx264`. Si AMF también falla, cae a `libx264` CPU y el video
-  sale eventualmente pero tarda ~10-15 min en vez de 1-2 min.
-- Si AMF cuelga (lo que parece estar pasando según el log de las
-  pruebas anteriores), el render queda colgado indefinidamente.
+and 145x145 succeeds.
 
-## Lo que ya probamos y por qué no funcionó
+The canary probe in `_verify_encoder_works` (`src/sleep_learning_engine/video/builder.py`)
+was using 64x64 (original) and then 128x128 (after the first fix).
+**Both are below the 145 px floor.** The T4 in the Colab Pro instance
+was perfectly healthy - `nvidia-smi` reported `Tesla T4, 15360 MiB`,
+the NVIDIA driver was working, the LD_LIBRARY_PATH patch was applied.
+NVENC was just rejecting the probe frame because of its size, not
+because the encoder was broken.
 
-### 1. Canario original (`64x64`, `duration=0.04`, `-frames:v 1`)
-El probe de NVENC usaba un frame de prueba minúsculo. El driver de
-NVENC en el T4 del Colab del usuario rechaza ese probe con
-`Frame Dimension less than the minimum supported value`. El 64x64
-está por encima del mínimo documentado de NVENC, pero la
-combinación de duración 0.04s + 1 frame forzado confunde la lógica
-interna de timestamps del driver y reporta la dimensión como
-inválida.
+That single detail (a 17 px difference between the canary and the
+NVENC minimum) caused every prior "fix" to look like it didn't work.
+The CUDA runtime check passed. The nvidia-smi check passed. The
+LD_LIBRARY_PATH patch made the encoder list show up. The 128x128 +
+1 second + yuv420p + no B-frames combo all made the canary more
+realistic. None of it mattered because the dimension itself was
+disqualifying.
 
-### 2. Parche de `LD_LIBRARY_PATH` (commit `83d4874`)
-Antes del probe, parcheamos `os.environ["LD_LIBRARY_PATH"]` para
-incluir `/usr/lib64-nvidia` (la ruta de las libs NVIDIA en
-Colab). Sin esto, ffmpeg no encuentra `libcuda.so` y NVENC falla
-en silencio. El parche funciona, pero el problema del canary es
-ortogonal: el parche ya estaba aplicado en el log que el usuario
-compartió y NVENC igual falló.
+## The fix
 
-### 3. Canario arreglado (`128x128`, `duration=1`, `rate=24`,
-`-pix_fmt yuv420p`, `-bf 0`) (commit `d8d5cb2`)
-Cambiamos el probe a 128x128, 1 segundo a 24 fps, pix_fmt
-explícito y sin B-frames. El error de NVENC cambió de "Cannot load
-nvcuda.dll" a "Frame Dimension less than the minimum", o sea
-mejoró pero sigue sin pasar. **El canary sigue rechazando NVENC
-en este T4 específico**, aunque el hardware está disponible.
+Bump the canary to 256x256. That clears the 145 px floor with a
+111 px margin, is still tiny to encode (1 second at 24 fps = 24
+frames), and the real project renders (720p, 1080p) were always
+above the floor - they just never got a chance to use NVENC because
+the canary gate was rejecting the encoder before the real encode
+even started.
 
-### 4. Fallback a `libx264` (vía `build()`)
-Cuando el canary falla, el código intenta AMF, después `libx264`.
-El render eventualmente termina, pero:
-- En T4 (GPU) + 1 thread, libx264 tarda ~10-15 min para 6:55 de
-  video 1080p
-- Si el runtime está limitado a CPU (Colab free sin T4), tarda
-  más
-- El proceso parece colgado porque el log no flushea progreso
+The new canary command in `_verify_encoder_works`:
 
-### 5. Stream del output con `subprocess.Popen` (commit `83d4874`)
-Cambiamos de `subprocess.run(..., capture_output=True)` a
-`subprocess.Popen` con line-buffered stdout merged con stderr.
-Esto arregla la percepción de "se queda colgado" (el output
-ahora se ve en tiempo real), pero NO arregla el canary.
-
-### 6. Verificación GPU con `nvidia-smi` (commit `83d4874`)
-La celda 1 ahora corre `nvidia-smi` en vez de solo chequear
-`ffmpeg -encoders`. El T4 del Colab del usuario SÍ aparece
-(`Tesla T4, 15360 MiB, ...`). La GPU existe y está bindeada. NVENC
-debería estar disponible.
-
-### 7. Render local con `libx264` forzado
-Probé localmente con `output_preset=sleep_720p`,
-`hardware_accel=libx264`, `render_threads=1`. El pipeline anda
-end-to-end: 1 párrafo de 40s → MP4 de 8.6 MB en 68.6 segundos. El
-canario se salta completamente porque forzamos `libx264`. Esto
-confirma que el pipeline funciona; el problema es solo el canario
-del NVENC en Colab.
-
-## Configuración actual del usuario
-
-`.sleeplens.toml`:
-```toml
-output_preset = "sleep_720p"
-render_threads = 1
-hardware_accel = "libx264"
-script_file = "D:/Downloads/prueba.txt"
-background_image = "D:/Youtube/sleepingdevfer34/learn_rag_sleeping/learn_rag_while_sleeping.jpeg"
+```bash
+ffmpeg -y -hide_banner -loglevel error \
+  -f lavfi -i "color=black:size=256x256:rate=24:duration=1" \
+  -c:v <encoder> -pix_fmt yuv420p -bf 0 -f null -
 ```
 
-`D:/Downloads/prueba.txt` (el script original) ya no existe en el
-disco del usuario. Tuve que crear un script de prueba (`Sleep is
-a fundamental biological process...`) para validar el pipeline
-localmente.
+## Why the other 6 attempts looked broken
 
-`assets/ambient/` contiene 97 mp3 normalizados a -23 LUFS (estándar
-broadcast).
+1. **Original canary (64x64, duration=0.04, -frames:v 1).**
+   Way under the 145 px floor. NVENC rejected with the dimension
+   error.
 
-## Resumen del problema
+2. **LD_LIBRARY_PATH patch (commit `83d4874`).**
+   Patched `os.environ["LD_LIBRARY_PATH"]` to include
+   `/usr/lib64-nvidia` (Colab's NVIDIA lib path). This was
+   necessary - without it, ffmpeg would not even find
+   `libcuda.so` - but it only addresses the "Cannot load
+   nvcuda.dll" failure mode, not the dimension error. Both
+   failures were happening, the LD_LIBRARY_PATH fix only
+   resolved the first.
 
-El canario de NVENC en `src/sleep_learning_engine/video/builder.py:_verify_encoder_works`
-reporta `Frame Dimension less than the minimum supported value`
-incluso con el probe de 128x128 / 1s / yuv420p / sin B-frames. El
-mismo hardware (T4 en Colab Pro) sí aparece en `nvidia-smi` con
-15 GB de VRAM y un driver NVIDIA funcionando. La diferencia
-entre "NVENC anda en el hardware" y "el canario lo rechaza" no la
-hemos podido identificar todavía.
+3. **nvidia-smi check (commit `83d4874`).**
+   Replaced the misleading "NVENC available: " line with a real
+   `nvidia-smi` query. This was needed for diagnostics - it
+   proved the T4 was bound to the container with 15 GB VRAM - but
+   the encoder-level dimension check was downstream of this and
+   unaffected.
 
-## Archivos relevantes en el repo
+4. **Subprocess.Popen streaming (commit `83d4874`).**
+   Switched from `subprocess.run(..., capture_output=True)` to
+   `subprocess.Popen` with line-buffered stdout merged with
+   stderr. This fixed the "render looks frozen" symptom, but
+   did not change the canary behaviour.
 
-- `src/sleep_learning_engine/video/builder.py` — contiene
-  `_verify_encoder_works` (el canario problemático) y `build` (el
-  fallback a `libx264`).
-- `scripts/generate_colab_notebook.py` — generador del notebook
-  público de Colab. La celda 4 llama `subprocess.Popen` con el
-  parche de `LD_LIBRARY_PATH` y streaming output.
-- `scripts/generate_drive_notebook.py` — generador del notebook
-  personal (variante Drive). Misma estructura, paths Drive-mounted.
-- `docs/cloud/low_ram_render.ipynb` — notebook público de Colab.
-- `docs/cloud/drive_render.ipynb` — notebook personal del
-  usuario.
-- `.sleeplens.toml` — config del usuario, apunta a
-  `libx264 forzado + 720p + 1 thread` para evitar el canario.
+5. **Canary bump to 128x128 / 1s / yuv420p / no B-frames
+   (commit `d8d5cb2`).**
+   Better probe (1s of real frame timing, explicit pixfmt, no
+   B-frames to keep the filter graph simple), but still 128x128
+   is **17 px short of the 145 minimum**. The error message
+   from NVENC was the same.
 
-## Histórico de commits relevantes
+6. **Local render with `libx264` forced (workaround).**
+   Confirmed the pipeline itself works end-to-end (1 paragraph,
+   40s, 720p, 1 thread, 8.6 MB MP4 in 68.6s on the local
+   Windows box) and the only blocker was the canary gate. But
+   it was a workaround, not a fix - the cloud path was still
+   going through libx264 and taking 10-15 min for a 6:55 video.
 
-- `79a8212` — Rename del proyecto (incluye fallback
-  `.sleeplens.toml` ↔ `.sleep_learning_engine.toml`).
-- `83d4874` — Tres fixes cloud: `nvidia-smi` check, `LD_LIBRARY_PATH`
-  patch, `subprocess.Popen` con streaming.
-- `d8d5cb2` — Canario NVENC arreglado (de 64x64 a 128x128 + 1s +
-  yuv420p).
-- `450ec04` — `CHANGELOG.md` actualizado.
-- `cacc2ae` — `CHANGELOG.md` con los fixes posteriores al rename.
+7. **AMF probe after NVENC fails.**
+   Once NVENC was rejected, the auto path tried QSV (expected
+   to fail on a non-Intel T4) and then AMF. AMF was hanging
+   indefinitely on the T4 because AMD's AMF runtime is not
+   designed for non-AMD hardware - some builds busy-loop
+   waiting for an AMD device that will never appear. With the
+   canary now passing for NVENC, AMF is never tried on T4s
+   and the hang disappears.
 
-(Este documento NO incluye soluciones; solo describe el estado
-actual y todo lo probado. La decisión de cómo proceder queda
-abierta.)
+## Verification plan
+
+After the 256x256 canary lands:
+
+1. Run the canary locally on a real NVENC GPU (or on Colab Pro T4)
+   and confirm exit code 0.
+2. Run `python -m sleep_learning_engine render ...` with
+   `hardware_accel = "auto"` and confirm the log shows
+   `Canary encode for h264_nvenc passed` (not failed).
+3. Confirm the final encode finishes in 1-2 min for a 6:55
+   1080p video on T4, not 10-15 min.
+4. Confirm the studio reuses the canary-passing NVENC choice on
+   the next run without re-probing (or re-probes and still picks
+   it).
+
+If the canary still fails after the bump, the next thing to check
+is whether the running ffmpeg build was compiled against an
+NVENC SDK older than the one in the driver. That would surface
+as a different error (typically "NVENC API version mismatch")
+and would be resolved by upgrading the ffmpeg static build on
+the Colab notebook side, not by changing the canary again.
+
+## Relevant files in the repo
+
+- `src/sleep_learning_engine/video/builder.py` -
+  `_verify_encoder_works` (the canary, now 256x256) and `build`
+  (the encode call + libx264 retry).
+- `tests/test_encoder_fallback.py` - regression tests for the
+  canary path. New test added: the auto path must select NVENC
+  when the canary returns True, and must include the
+  `p4`/`vbr`/`4M` flag set in `HardwareChoice.extra_flags`.
+- `scripts/generate_colab_notebook.py` - generator for the
+  public Colab notebook.
+- `scripts/generate_drive_notebook.py` - generator for the
+  personal Drive-mounted notebook.
+- `scripts/generate_kaggle_notebook.py` - generator for the
+  Kaggle notebook.
+- `docs/cloud/low_ram_render.ipynb` - public Colab notebook.
+- `docs/cloud/drive_render.ipynb` - personal Drive notebook.
+- `docs/cloud/kaggle_render.ipynb` - Kaggle notebook.
+- `docs/HARDWARE.md` - encoder cheat sheet, with the 145 px
+  minimum documented in the auto-mode section.
+- `.sleeplens.toml` - user's personal config. Should be flipped
+  back to `hardware_accel = "auto"` (or omitted entirely, since
+  "auto" is the default) once the canary is fixed.
+
+## Commit history relevant to this issue
+
+- `79a8212` - Project rename (includes fallback
+  `.sleeplens.toml` <-> `.sleep_learning_engine.toml`).
+- `83d4874` - Three cloud-notebook fixes: nvidia-smi check,
+  LD_LIBRARY_PATH patch, subprocess.Popen streaming.
+- `d8d5cb2` - Canary bump from 64x64 to 128x128 / 1s / yuv420p.
+  Helped with timing, did not address the dimension floor.
+- `450ec04` - CHANGELOG entry for the post-rename fixes.
+- `cacc2ae` - CHANGELOG entry continuing the post-rename fixes.
+- `e0d2a0d` - This document (the original problem statement).
+- `<next>` - The 256x256 canary fix + doc updates + regression
+  test, the actual root cause resolution.
+
+(This document describes the root cause and the path to the fix.
+It does not include the diff itself; see the next commit for
+that.)

@@ -63,6 +63,43 @@ def test_pick_hardware_skips_nvenc_when_canary_fails(monkeypatch) -> None:
     assert chosen.encoder == "h264_qsv"
 
 
+def test_pick_hardware_picks_nvenc_with_p4_vbr_flags_when_canary_passes(
+    monkeypatch,
+) -> None:
+    """When the canary passes for NVENC, auto must select it AND carry
+    the p4 / vbr / 4M rate-control flags. This is the regression for
+    the Colab Pro T4 case: the canary used to be 128x128 and the
+    driver rejected it for being below the 145 px NVENC H.264 minimum
+    (FFmpeg trac #9251), so auto fell through to libx264 and the
+    6:55 video took 10-15 min instead of 1-2 min.
+    """
+
+    _patch_probe(monkeypatch, "h264_nvenc h264_qsv h264_amf")
+
+    def fake_verify(binary, encoder):  # type: ignore[no-untyped-def]
+        return True  # every HW encoder passes the canary
+
+    monkeypatch.setattr(builder, "_verify_encoder_works", fake_verify)
+
+    chosen = pick_hardware("auto", Path("fake-ffmpeg"))
+    assert chosen.encoder == "h264_nvenc", (
+        f"Expected h264_nvenc when its canary passes, got {chosen.encoder!r}"
+    )
+    # The NVENC preset must carry p4 / vbr / 4M so the encode uses
+    # the GPU's dedicated chip and stays under the 4 Mbps target
+    # for 720p/1080p sleep content.
+    flags = list(chosen.extra_flags)
+    assert "-preset" in flags and "p4" in flags, (
+        f"NVENC preset missing p4 quality knob: {flags}"
+    )
+    assert "-rc" in flags and "vbr" in flags, (
+        f"NVENC preset missing vbr rate-control: {flags}"
+    )
+    assert "-b:v" in flags and "4M" in flags, (
+        f"NVENC preset missing 4M target bitrate: {flags}"
+    )
+
+
 def test_pick_hardware_falls_all_the_way_to_libx264(monkeypatch) -> None:
     """If every HW encoder is broken, libx264 is the safe floor."""
 
