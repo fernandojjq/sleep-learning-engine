@@ -21,9 +21,9 @@ from ..ai.connector import AIConnector
 from ..ai.script_writer import Script, ScriptWriter, load_script_from_file
 from ..audio.mixer import (
     MixSpec,
+    build_ambient_playlist,
     extract_script_keywords,
     mix_bed_and_voice,
-    pick_ambient,
     scan_ambient_library,
 )
 from ..audio.tts import TTSEngine, TTSResult
@@ -180,7 +180,7 @@ def run_render(
 
     # 4. Ambient
     emit(RenderStage.AMBIENT, "Selecting ambient bed")
-    ambient_track = None
+    ambient_paths: list[Path] | None = None
     if settings.ambient_mode is not AmbientMode.DISABLED:
         library = scan_ambient_library(paths.ambient_dir)
         if not library:
@@ -188,15 +188,22 @@ def run_render(
                 f"No ambient tracks found in {paths.ambient_dir}. Drop royalty-free loops into the folder and re-render."
             )
         else:
-            ambient_track = pick_ambient(
+            playlist = build_ambient_playlist(
                 library,
-                mode=settings.ambient_mode,
+                total_seconds=timing.total_seconds,
                 script_keywords=extract_script_keywords(script.plain_text()),
             )
-            if ambient_track is not None:
+            if playlist:
+                ambient_paths = playlist
+                # Surface a short summary so the user knows what is
+                # going to play, especially the cycle count.
+                unique_count = len(set(playlist))
+                cycles = len(playlist) // max(unique_count, 1)
                 emit(
                     RenderStage.AMBIENT,
-                    f"Selected ambient track '{ambient_track.title}' ({ambient_track.size_mb:.1f} MB).",
+                    f"Built ambient playlist: {unique_count} unique tracks, "
+                    f"{len(playlist)} entries ({cycles} full cycles), "
+                    f"{len(set(playlist))} tracks before any repeat.",
                 )
             else:
                 notes.append("No ambient track matched; the voice plays solo.")
@@ -207,7 +214,7 @@ def run_render(
     mix_bed_and_voice(
         MixSpec(
             voice_path=tts_result.track_path,
-            ambient_path=ambient_track.path if ambient_track else None,
+            ambient_paths=ambient_paths,
             target_duration=timing.total_seconds,
             output_path=mixed_path,
             voice_volume=settings.voice_volume,

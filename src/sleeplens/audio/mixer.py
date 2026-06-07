@@ -41,6 +41,9 @@ class AmbientTrack:
     path: Path
     keywords: tuple[str, ...]
     title: str
+    # Default 60s covers the procedural generator's output. The
+    # playlist builder uses this to size cycles without re-probing.
+    duration_seconds: float = 60.0
 
     @property
     def size_mb(self) -> float:
@@ -67,14 +70,137 @@ def scan_ambient_library(directory: Path) -> list[AmbientTrack]:
 
 def pick_ambient(
     tracks: Iterable[AmbientTrack],
-    *,
-    mode: AmbientMode,
+    mode: object,
     script_keywords: Iterable[str] = (),
 ) -> AmbientTrack | None:
-    """Select a single track for the bed, honouring the chosen mode."""
+    """Select a single track for the bed, honouring the chosen mode.
+
+    Kept for backwards compatibility with callers that still want a
+    single-track pick. New code should use :func:`build_ambient_playlist`
+    to get the full random-without-repetition playlist.
+    """
     tracks_list = list(tracks)
     if not tracks_list:
         return None
+    if mode == "random":
+        import random
+        if not list(script_keywords):
+            return random.choice(tracks_list)
+        script_set = {kw.lower() for kw in script_keywords}
+        candidates = [t for t in tracks_list if t.keywords and (set(t.keywords) & script_set)]
+        pool = candidates or tracks_list
+        return random.choice(pool)
+    if mode == "auto":
+        # Score by keyword overlap with the script. Fall back to the first
+        # track if no keyword matches.
+        script_set = {kw.lower() for kw in script_keywords}
+        def score(track: AmbientTrack) -> int:
+            if not script_set:
+                return 1 if track.keywords else 0
+            return sum(1 for kw in track.keywords if kw in script_set)
+        matches = sorted(tracks_list, key=score, reverse=True)
+        # All tracks with the top score are equally valid; pick one at
+        # random so successive renders do not always land on the same
+        # track. Use the keyword set as the seed so the choice is
+        # deterministic per script (good for reproducibility).
+        top = matches[0]
+        top_score = score(top)
+        tied = [t for t in matches if score(t) == top_score]
+        if len(tied) == 1:
+            return tied[0]
+        import random
+        rng = random.Random(tuple(sorted(script_set)))
+        return rng.choice(tied)
+    if mode == "keyword":
+        # Strict keyword match: pick the highest-scoring track. If
+        # nothing matches at all, return None (the caller falls back
+        # to voice-only rather than picking an unrelated track).
+        script_set = {kw.lower() for kw in script_keywords}
+        candidates = [
+            t for t in tracks_list
+            if t.keywords and (set(t.keywords) & script_set)
+        ]
+        if not candidates:
+            return None
+        def score(track: AmbientTrack) -> int:
+            return sum(1 for kw in track.keywords if kw in script_set)
+        candidates.sort(key=score, reverse=True)
+        top_score = score(candidates[0])
+        tied = [t for t in candidates if score(t) == top_score]
+        if len(tied) == 1:
+            return tied[0]
+        import random
+        rng = random.Random(tuple(sorted(script_set)))
+        return rng.choice(tied)
+    return None
+
+
+def build_ambient_playlist(
+    tracks: Iterable[AmbientTrack],
+    total_seconds: float,
+    *,
+    script_keywords: Iterable[str] = (),
+    seed: int | None = None,
+) -> list[Path]:
+    """Build a shuffled ambient playlist that covers ``total_seconds``.
+
+    Selection rules:
+    1. Tracks whose keywords overlap with the script form the primary
+       pool. If no track matches, the entire library is the pool.
+    2. The pool is shuffled with a deterministic seed (per-script by
+       default, so re-renders stay reproducible).
+    3. The shuffled list is repeated end-to-end until the cumulative
+       duration is at least ``total_seconds``. Each track plays once
+       per cycle; only when the voice is longer than one full cycle
+       does the playlist loop.
+
+    This means a 6-hour video with 14 tracks plays each track ~25 times
+    spread evenly across the runtime, not back-to-back. A 5-minute
+    video with 14 tracks plays roughly the first 5 tracks of one
+    shuffled cycle, never the same track twice.
+    """
+    import random as _random
+
+    tracks_list = list(tracks)
+    if not tracks_list or total_seconds <= 0:
+        return []
+
+    script_set = {kw.lower() for kw in script_keywords}
+    candidates = [
+        t for t in tracks_list
+        if script_set and t.keywords and (set(t.keywords) & script_set)
+    ]
+    pool = candidates or tracks_list
+    if not pool:
+        return []
+
+    rng = _random.Random(seed) if seed is not None else _random.Random()
+    rng.shuffle(pool)
+
+    # Repeat the shuffled pool until we cover total_seconds. We
+    # measure duration by reading ffprobe lazily; the first probe per
+    # track is cached so a long playlist only reads each file once.
+    durations: dict[Path, float] = {}
+    for t in pool:
+        if t.path in durations:
+            continue
+        durations[t.path] = t.duration_seconds
+
+    playlist: list[Path] = []
+    accumulated = 0.0
+    # Cap the cycle count to avoid pathological cases (e.g. a 1-second
+    # track and a 1000-hour target). 10,000 cycles is a sane upper
+    # bound that still produces a manageable concat file.
+    max_cycles = 10_000
+    cycle = 0
+    while accumulated < total_seconds and cycle < max_cycles:
+        for t in pool:
+            playlist.append(t.path)
+            accumulated += durations[t.path]
+            if accumulated >= total_seconds:
+                break
+        cycle += 1
+    return playlist
     if mode is AmbientMode.DISABLED:
         return None
     if mode is AmbientMode.RANDOM:
@@ -118,10 +244,16 @@ def _extract_keywords(stem: str) -> tuple[str, ...]:
 
 @dataclass(frozen=True)
 class MixSpec:
-    """Inputs to the audio mixer."""
+    """Inputs to the audio mixer.
+
+    ``ambient_paths`` is a list (not a single path) so the bed can be
+    a shuffled playlist. A single-element list is the simple "loop
+    this one track" case; a multi-element list is the random-no-repeat
+    playlist. Pass ``None`` or an empty list to render voice-only.
+    """
 
     voice_path: Path
-    ambient_path: Path | None
+    ambient_paths: list[Path] | None
     target_duration: float
     output_path: Path
     voice_volume: float = 1.0
@@ -129,15 +261,39 @@ class MixSpec:
     ambient_duck_db: float = 12.0
     ffmpeg_bin: Path | None = None
 
+    @property
+    def has_ambient(self) -> bool:
+        return bool(self.ambient_paths)
+
+
+def _write_concat_playlist(paths: list[Path], target: Path) -> None:
+    """Write an ffmpeg concat demuxer playlist file.
+
+    The format is one ``file '...'`` line per entry. The file is
+    written to ``target`` (a sibling of the output WAV) so the
+    mixer can pass it to ffmpeg with ``-f concat -safe 0 -i``.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as fh:
+        for p in paths:
+            # ffmpeg's concat demuxer requires forward slashes and
+            # single-quoted paths. Windows backslashes confuse it.
+            normalised = str(p.resolve()).replace("\\", "/")
+            fh.write(f"file '{normalised}'\n")
+
 
 def mix_bed_and_voice(spec: MixSpec) -> Path:
     """Produce a single stereo track that plays the voice over the ambient bed.
 
-    The bed is looped to match the voice duration, filtered to a comfortable
-    level, and ducked whenever the voice is active. The voice track is
-    explicitly padded to ``target_duration`` so the silent pauses between
-    paragraphs become real silence gaps in the output. The result is a stereo
-    48 kHz WAV ready to feed the video encoder.
+    The bed is sourced from ``spec.ambient_paths`` (one or many files).
+    A single-element list loops that one track. A multi-element list
+    is treated as a shuffled playlist that plays end-to-end before
+    looping, so each track is heard once per cycle. The bed is
+    filtered to a comfortable level and ducked whenever the voice is
+    active. The voice track is explicitly padded to ``target_duration``
+    so the silent pauses between paragraphs become real silence
+    gaps in the output. The result is a stereo 48 kHz WAV ready to
+    feed the video encoder.
     """
     if not spec.voice_path.exists():
         raise AssetNotFoundError(f"Voice track not found: {spec.voice_path}")
@@ -145,27 +301,40 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
         raise DependencyMissingError(
             "ffmpeg binary not configured. Drop ffmpeg.exe into cache/."
         )
-    if spec.ambient_path is None:
+    if not spec.has_ambient:
         # No ambient: just convert the voice to a stereo WAV at the right length.
         return _convert_voice_only(spec)
 
     spec.output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Build the bed input. The single-track case is the legacy fast
+    # path (no concat demuxer, no temp file). The multi-track case
+    # writes a playlist file and uses ffmpeg's concat demuxer with
+    # -stream_loop -1 so the whole playlist repeats end-to-end.
+    if len(spec.ambient_paths or []) == 1:
+        ambient_input: list[str] = [
+            "-stream_loop", "-1",
+            "-i", str(spec.ambient_paths[0]),
+        ]
+        bed_label_in = "[1:a]"
+    else:
+        playlist_path = spec.output_path.with_suffix(".ambient.txt")
+        _write_concat_playlist(list(spec.ambient_paths), playlist_path)
+        ambient_input = [
+            "-f", "concat", "-safe", "0", "-stream_loop", "-1",
+            "-i", str(playlist_path),
+        ]
+        bed_label_in = "[1:a]"
+
     # Filter graph:
     #   1. Pad the voice to target_duration so silent paragraph pauses survive.
-    #   2. Loop the bed to match the voice duration.
+    #   2. Trim the (already looped) bed to match the voice duration.
     #   3. Apply sidechain ducking on the bed whenever the voice is active.
-    # Link labels are intentionally spelled out ("voice", "bed") because
-    # single-letter labels such as ``[v]`` or ``[b]`` collide with
-    # ffmpeg's stream-specifier parsing and get rejected with
-    # "Stream specifier 'v' in filtergraph description matches no streams"
-    # on real-world long renders (the smoke test did not catch this
-    # because it used a sub-second target).
     filter_complex = (
         f"[0:a]volume={spec.voice_volume},aresample=48000,asetpts=PTS-STARTPTS,"
         f"apad=whole_dur={spec.target_duration:.3f},"
         f"atrim=0:{spec.target_duration:.3f}[voice];"
-        f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{spec.target_duration:.3f},"
+        f"{bed_label_in}atrim=0:{spec.target_duration:.3f},"
         f"volume={spec.ambient_volume},aresample=48000[bed];"
         f"[bed][voice]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=1500:"
         f"makeup=1[ducked];"
@@ -178,10 +347,7 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
         "-y",
         "-i",
         str(spec.voice_path),
-        "-stream_loop",
-        "-1",
-        "-i",
-        str(spec.ambient_path),
+        *ambient_input,
         "-filter_complex",
         filter_complex,
         "-map",

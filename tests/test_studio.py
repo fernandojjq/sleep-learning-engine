@@ -138,7 +138,7 @@ def test_mix_bed_and_voice_voice_only(tmp_path: Path) -> None:
     out = am.mix_bed_and_voice(
         am.MixSpec(
             voice_path=voice,
-            ambient_path=None,
+            ambient_paths=None,
             target_duration=2.0,
             output_path=target,
             ffmpeg_bin=ffmpeg,
@@ -169,7 +169,7 @@ def test_mix_filter_uses_long_labels(tmp_path: Path) -> None:
     out = am.mix_bed_and_voice(
         am.MixSpec(
             voice_path=voice,
-            ambient_path=bed,
+            ambient_paths=[bed],
             target_duration=2.0,
             output_path=target,
             ffmpeg_bin=ffmpeg,

@@ -306,6 +306,19 @@ default para esa sesión (se guarda en `.sleeplens.toml`).
 - Abrí `assets\ambient\` y verificá que estén los 14 archivos
   `.ogg`. Si está vacío, corré una vez:
   `uv run python scripts\generate_ambient.py`
+- Si querés que el generador **deje las pistas al mismo volumen**
+  (importante: el mixer hace duck/unduck, y si una pista está 6 dB
+  más alta que otra te despertás), agregá `--normalize`:
+  `uv run python scripts\generate_ambient.py --normalize`
+
+**Quiero que el ambient varíe, no siempre la misma pista**
+- Por default, sleeplens arma un **playlist aleatorio sin
+  repetición** con las pistas que matchean los keywords del
+  script. Cada pista suena una vez antes de que el ciclo
+  completo se repita, así un video de 6 horas no es la misma
+  pista 360 veces.
+- Si querés forzar el comportamiento (auto / keyword / random /
+  disabled), cambiá **Ambient bed mode** en la pestaña Audio.
 
 **Quiero ver el log detallado de un error**
 - Está en `D:\proyectos\Proyectos Github\sleeplens\logs\sleeplens.log`

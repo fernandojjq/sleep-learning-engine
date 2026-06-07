@@ -447,6 +447,14 @@ def main() -> int:
         action="store_true",
         help="Only emit the OGG files (requires ffmpeg on PATH or in cache/).",
     )
+    parser.add_argument(
+        "--normalize",
+        action="store_true",
+        help="After generating, run scripts/normalize_ambient.py to bring every "
+        "track to the same integrated loudness (EBU R128, default -23 LUFS). "
+        "Recommended so the mixer does not jolt the listener awake when "
+        "ducking between tracks of different volumes.",
+    )
     args = parser.parse_args()
 
     out_dir = ROOT / "assets" / "ambient"
@@ -482,6 +490,25 @@ def main() -> int:
         else:
             print(f"  {track.name:32s}  WAV {size_wav:5.2f} MB")
     print(f"Done. {len(TRACKS)} tracks in {out_dir}")
+
+    if args.normalize:
+        # Chain into the loudness normaliser so the user gets
+        # volume-matched tracks in one command. The script is
+        # self-contained and lives next to this one in scripts/.
+        import subprocess
+        normaliser = Path(__file__).resolve().parent / "normalize_ambient.py"
+        print(f"\nNormalising loudness via {normaliser.name} ...")
+        result = subprocess.run(
+            [sys.executable, str(normaliser), "--dir", str(out_dir)],
+            capture_output=True, text=True,
+        )
+        # Forward the normaliser's output so the user sees the LUFS deltas.
+        if result.stdout:
+            print(result.stdout.rstrip())
+        if result.returncode != 0:
+            print(f"WARNING: normaliser exited with code {result.returncode}", file=sys.stderr)
+            if result.stderr:
+                print(result.stderr.rstrip(), file=sys.stderr)
     return 0
 
 
