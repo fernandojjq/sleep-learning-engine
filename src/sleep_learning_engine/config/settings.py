@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import tomllib
 from dataclasses import dataclass, field
@@ -142,7 +143,7 @@ class AppSettings:
 
     # TTS
     tts_backend: TTSBackend = TTSBackend.EDGE
-    tts_voice: str = "en-US-AriaNeural"
+    tts_voice: str = "en-US-BrianNeural"  # Deep male voice, top pick for sleep.
     tts_rate: str = "-5%"  # Slightly slower for sleepy narration.
     tts_pitch: str = "-2Hz"
 
@@ -182,7 +183,19 @@ class AppSettings:
 
 
 def load_settings(path: Path) -> AppSettings:
-    """Read settings from a TOML file. Missing file returns defaults."""
+    """Read settings from a TOML file. Missing file returns defaults.
+
+    Environment variable overrides are applied AFTER the TOML load so
+    a notebook or one-off script can change a single field without
+    writing a config file. Recognised env vars (legacy + new names):
+
+    - ``SLEEP_LEARNING_ENGINE_TTS_VOICE`` (or ``SLEEPLENS_TTS_VOICE``)
+      sets ``tts_voice`` to an Edge TTS voice id like
+      ``en-US-BrianNeural`` or ``es-ES-ElviraNeural``. Useful in the
+      Colab / Kaggle notebooks where editing the config file is
+      friction and a single ``VOICE = "..."`` line at the top of
+      cell 1 is faster.
+    """
     if not path.exists():
         # Friendly nudge: point at the public template the repo ships.
         example = path.with_name(path.name + ".example")
@@ -193,15 +206,16 @@ def load_settings(path: Path) -> AppSettings:
                 f"and edit your values to persist your settings.",
                 file=sys.stderr,
             )
-        return AppSettings()
-    with path.open("rb") as fh:
-        raw = tomllib.load(fh)
-    settings = AppSettings()
-    for key, value in raw.items():
-        if hasattr(settings, key):
-            setattr(settings, key, value)
-        else:
-            settings.extra[key] = value
+        settings = AppSettings()
+    else:
+        with path.open("rb") as fh:
+            raw = tomllib.load(fh)
+        settings = AppSettings()
+        for key, value in raw.items():
+            if hasattr(settings, key):
+                setattr(settings, key, value)
+            else:
+                settings.extra[key] = value
     # TOML round-trip turns StrEnum members into plain strings. Cast
     # the known enum fields back to their enum type so callers can
     # keep using ``settings.tts_backend.value`` etc.
@@ -220,6 +234,12 @@ def load_settings(path: Path) -> AppSettings:
             settings.output_preset = OutputPreset(settings.output_preset)
         except ValueError:
             settings.output_preset = OutputPreset.SLEEP_720P
+    # Env-var overrides (apply AFTER TOML so they win). Each env var
+    # accepts both the new SLEEP_LEARNING_ENGINE_* name and the legacy
+    # SLEEPLENS_* name so older scripts keep working.
+    env_voice = os.environ.get("SLEEP_LEARNING_ENGINE_TTS_VOICE") or os.environ.get("SLEEPLENS_TTS_VOICE")
+    if env_voice:
+        settings.tts_voice = env_voice
     return settings
 
 

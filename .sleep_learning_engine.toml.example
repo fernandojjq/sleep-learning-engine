@@ -32,36 +32,12 @@ max_retries = 4
 system_prompt = ""
 
 # TTS - default backend is Edge (free, no key, 46 voices).
-# Other backends (piper, elevenlabs, azure) are placeholders for now.
-tts_backend = "edge"
-tts_voice = "en-US-AriaNeural"
-tts_rate = "-5%"
-tts_pitch = "-2Hz"
-
-# Script source: leave script_topic blank and fill script_file with a
-# path to a text file. Or vice versa. The GUI lets you switch.
-script_topic = ""
-script_file = ""
-target_word_count = 4500
-pause_between_paragraphs = 1.8
-language = "en"
-
-# Visual source. Drop an image or a short loopable video. Leave both
-# blank to use the procedural dark fallback.
-background_image = ""
-background_video = ""
-video_fps = 24
-video_width = 1280
-video_height = 720
-fallback_seed = 20251123
-
-# Ambient bed. "auto" matches keywords from the script (rain, ocean,
-# alpha, lofi, fire, brown noise, ...). "disabled" silences the bed.
-# If `assets/ambient/` is empty, run `uv run python scripts/generate_ambient.py`
-# to synthesise 14 procedural tracks locally (Opus in OGG, ~12 MB total).
-ambient_mode = "auto"
-ambient_volume = 0.18
-ambient_duck_db = 12.0
+# Default voice is Brian (deep male, top pick for sleep narration).
+# Swap the value below to use Aria, Emma, Elvira, etc. - or skip
+# editing this file and pass $SLEEP_LEARNING_ENGINE_TTS_VOICE in
+# the env (used by the Colab / Kaggle / Drive notebooks so a
+# single `VOICE = "..."` line at the top of cell 1 is enough).
+tts_voice = "en-US-BrianNeural"
 voice_volume = 1.0
 
 # Output. "sleep_720p" or "sleep_1080p" (or "audio_only" for a WAV).

@@ -20,13 +20,31 @@ def _project_root() -> Path:
     1. ``$SLEEP_LEARNING_ENGINE_HOME`` environment variable (new name).
     2. ``$SLEEPLENS_HOME`` (legacy, kept for back-compat with old checkouts).
     3. Walk up from this file until we find ``pyproject.toml``.
+
+    The env var is what makes the cloud notebooks work: the package
+    is pip-installed, so the auto-detect lands in
+    ``/usr/local/lib/python3.12/dist-packages/.../`` (where the
+    bundled ``assets/ambient/`` is empty and the output dir is not
+    writable). The notebook exports ``SLEEP_LEARNING_ENGINE_HOME``
+    to a writable work directory, so the resolved root is
+    ``/content/working`` and every subsequent path (ambient,
+    output, cache, logs) lands there.
     """
 
     env = os.environ.get("SLEEP_LEARNING_ENGINE_HOME") or os.environ.get("SLEEPLENS_HOME")
     if env:
         p = Path(env).expanduser().resolve()
         if p.exists():
+            print(
+                f"[sleep_learning_engine] Project root from env: {p}",
+                file=sys.stderr,
+            )
             return p
+        print(
+            f"[sleep_learning_engine] WARNING: $SLEEP_LEARNING_ENGINE_HOME={env} "
+            f"does not exist; falling back to auto-detect.",
+            file=sys.stderr,
+        )
 
     here = Path(__file__).resolve()
     for parent in here.parents:
