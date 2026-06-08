@@ -34,10 +34,19 @@ logs/
 !docs/*.jpg
 !docs/*.jpeg
 
-# Ambient beds: generated locally, not committed.
+# Ambient beds: generated locally, not committed by default. During the
+# contest submission window the .mp3s ARE bundled in the public tree so
+# judges can clone + render without running generate_ambient.py first.
+# See docs/CONTEST_NOTICE.md for the rationale and risk. Strip after the
+# contest with `scripts/strip_ambient.py`.
 assets/ambient/*
 !assets/ambient/.gitkeep
 !assets/ambient/README.md
+!assets/ambient/*.mp3
+!assets/ambient/*.ogg
+!assets/ambient/*.wav
+assets/ambient/.loudnorm-backup/
+assets/ambient/.loudnorm-backup/**
 
 # Editor / OS
 .idea/
