@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" font-family="'Inter','Segoe UI',system-ui,-apple-system,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a18"/>
+      <stop offset="100%" stop-color="#161629"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00FF66"/>
+      <stop offset="100%" stop-color="#00CC44"/>
+    </linearGradient>
+    <linearGradient id="m3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1E40AF"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="speech" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9D174D"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <linearGradient id="music" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#92400E"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="visual" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#115E59"/>
+      <stop offset="100%" stop-color="#14B8A6"/>
+    </linearGradient>
+    <linearGradient id="mix" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5B21B6"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="encode" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#065F46"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="3" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#9CA3AF"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#00FF66"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+
+  <!-- Decorative stars -->
+  <g fill="#FFFFFF" opacity="0.6">
+    <circle cx="120" cy="200" r="1.2"/>
+    <circle cx="240" cy="80" r="0.8"/>
+    <circle cx="380" cy="150" r="1.0"/>
+    <circle cx="520" cy="60" r="0.7"/>
+    <circle cx="900" cy="100" r="1.3"/>
+    <circle cx="1100" cy="50" r="0.9"/>
+    <circle cx="1250" cy="180" r="1.1"/>
+    <circle cx="1450" cy="90" r="0.8"/>
+    <circle cx="60" cy="450" r="0.9"/>
+    <circle cx="1500" cy="500" r="1.0"/>
+    <circle cx="80" cy="800" r="0.8"/>
+    <circle cx="1530" cy="850" r="1.1"/>
+  </g>
+
+  <!-- Title block -->
+  <text x="800" y="60" text-anchor="middle" font-size="34" font-weight="700" fill="#F9FAFB" letter-spacing="0.5">Sleep Learning Engine</text>
+  <text x="800" y="95" text-anchor="middle" font-size="18" font-weight="500" fill="#9CA3AF">Powered by Minimax  -  100% free to run, premium upgrades available</text>
+
+  <!-- Stage labels (left rail) -->
+  <g font-size="11" font-weight="700" fill="#6B7280" letter-spacing="2">
+    <text x="30" y="200">INPUT</text>
+    <text x="30" y="370">SCRIPT</text>
+    <text x="30" y="540">AUDIO</text>
+    <text x="30" y="720">MIX</text>
+    <text x="30" y="890">ENCODE</text>
+  </g>
+  <g stroke="#1F2937" stroke-width="1">
+    <line x1="30" y1="210" x2="100" y2="210"/>
+    <line x1="30" y1="380" x2="100" y2="380"/>
+    <line x1="30" y1="550" x2="100" y2="550"/>
+    <line x1="30" y1="730" x2="100" y2="730"/>
+    <line x1="30" y1="900" x2="100" y2="900"/>
+  </g>
+
+  <!-- ============== INPUT SECTION ============== -->
+  <g filter="url(#softShadow)">
+    <rect x="130" y="160" width="320" height="100" rx="14" fill="#1F2937" stroke="#374151" stroke-width="1.5"/>
+    <text x="290" y="195" text-anchor="middle" font-size="15" font-weight="600" fill="#E5E7EB">Topic prompt</text>
+    <text x="290" y="220" text-anchor="middle" font-size="12" fill="#9CA3AF">"Learn RAG while you sleep"</text>
+    <text x="290" y="240" text-anchor="middle" font-size="11" font-style="italic" fill="#6B7280">user types in the GUI or sets USE_TOPIC=True</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="490" y="160" width="320" height="100" rx="14" fill="#1F2937" stroke="#374151" stroke-width="1.5"/>
+    <text x="650" y="195" text-anchor="middle" font-size="15" font-weight="600" fill="#E5E7EB">Script file</text>
+    <text x="650" y="220" text-anchor="middle" font-size="12" fill="#9CA3AF">script.txt (one paragraph per block)</text>
+    <text x="650" y="240" text-anchor="middle" font-size="11" font-style="italic" fill="#6B7280">uploaded per render or staged in Drive</text>
+  </g>
+
+  <!-- OR label -->
+  <text x="470" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#9CA3AF">OR</text>
+
+  <!-- Arrows from input to script gen -->
+  <line x1="290" y1="260" x2="290" y2="320" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="650" y1="260" x2="650" y2="320" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============== SCRIPT GENERATION (M3) ============== -->
+  <g filter="url(#softShadow)">
+    <rect x="130" y="320" width="1010" height="140" rx="18" fill="url(#m3)"/>
+    <rect x="130" y="320" width="1010" height="140" rx="18" fill="none" stroke="#60A5FA" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="170" y="360" font-size="20" font-weight="700" fill="#FFFFFF">Minimax M3 / M2-her</text>
+    <text x="170" y="384" font-size="13" fill="#BFDBFE">Script generation (text model)</text>
+
+    <text x="170" y="420" font-size="12" fill="#DBEAFE">* OpenAI-compatible connector</text>
+    <text x="170" y="440" font-size="12" fill="#DBEAFE">* base_url: https://api.minimaxi.com/v1</text>
+    <text x="170" y="460" font-size="12" fill="#DBEAFE">* Streams response (visible progress on long scripts)</text>
+
+    <rect x="900" y="345" width="220" height="100" rx="10" fill="#0F172A" stroke="#60A5FA" stroke-width="1"/>
+    <text x="1010" y="375" text-anchor="middle" font-size="13" font-weight="600" fill="#F9FAFB">4,500-word script</text>
+    <text x="1010" y="395" text-anchor="middle" font-size="11" fill="#9CA3AF">~30 min narration</text>
+    <text x="1010" y="412" text-anchor="middle" font-size="11" fill="#9CA3AF">split into paragraphs</text>
+    <text x="1010" y="429" text-anchor="middle" font-size="11" fill="#9CA3AF">with 1.8s pauses</text>
+  </g>
+
+  <!-- Arrow down to 3 parallel audio columns -->
+  <line x1="290" y1="460" x2="290" y2="500" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="800" y1="460" x2="800" y2="500" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1070" y1="460" x2="1070" y2="500" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============== THREE PARALLEL COLUMNS ============== -->
+
+  <!-- Column 1: TTS (Speech 2.8) -->
+  <g filter="url(#softShadow)">
+    <rect x="130" y="500" width="320" height="160" rx="14" fill="url(#speech)"/>
+    <rect x="130" y="500" width="320" height="160" rx="14" fill="none" stroke="#F9A8D4" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="170" y="540" font-size="18" font-weight="700" fill="#FFFFFF">Minimax Speech 2.8</text>
+    <text x="170" y="562" font-size="12" fill="#FCE7F3">Text-to-speech (premium narration)</text>
+
+    <text x="170" y="595" font-size="12" fill="#FFFFFF">* 17+ voice presets, 40+ languages</text>
+    <text x="170" y="613" font-size="12" fill="#FFFFFF">* Emotion + sound-tag control</text>
+    <text x="170" y="631" font-size="12" fill="#FFFFFF">* 60% better prosody vs 2.6</text>
+    <text x="170" y="649" font-size="12" font-style="italic" fill="#FBCFE8">Default voice: en-US-BrianNeural*</text>
+  </g>
+
+  <text x="290" y="755" text-anchor="middle" font-size="11" fill="#6B7280" font-style="italic">*Edge TTS is the free fallback, Brian still default</text>
+
+  <!-- Column 2: Music (Music 2.6) -->
+  <g filter="url(#softShadow)">
+    <rect x="490" y="500" width="320" height="160" rx="14" fill="url(#music)"/>
+    <rect x="490" y="500" width="320" height="160" rx="14" fill="none" stroke="#FCD34D" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="530" y="540" font-size="18" font-weight="700" fill="#FFFFFF">Minimax Music 2.6</text>
+    <text x="530" y="562" font-size="12" fill="#FEF3C7">Custom ambient bed generation</text>
+
+    <text x="530" y="595" font-size="12" fill="#FFFFFF">* First-packet latency &lt; 20 s</text>
+    <text x="530" y="613" font-size="12" fill="#FFFFFF">* Per-video mood (rain, lofi, space)</text>
+    <text x="530" y="631" font-size="12" fill="#FFFFFF">* 14-day free beta, then pay-as-you-go</text>
+    <text x="530" y="649" font-size="12" font-style="italic" fill="#FDE68A">Default: 97 procedural mp3s (free)*</text>
+  </g>
+
+  <text x="650" y="755" text-anchor="middle" font-size="11" fill="#6B7280" font-style="italic">*No API call when using the bundled library</text>
+
+  <!-- Column 3: Visual -->
+  <g filter="url(#softShadow)">
+    <rect x="850" y="500" width="290" height="160" rx="14" fill="url(#visual)"/>
+    <rect x="850" y="500" width="290" height="160" rx="14" fill="none" stroke="#5EEAD4" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="880" y="540" font-size="18" font-weight="700" fill="#FFFFFF">Visual layer</text>
+    <text x="880" y="562" font-size="12" fill="#CCFBF1">Background + procedural stars</text>
+
+    <text x="880" y="595" font-size="12" fill="#FFFFFF">* User image OR looped clip</text>
+    <text x="880" y="613" font-size="12" fill="#FFFFFF">* Auto star-field if no asset</text>
+    <text x="880" y="631" font-size="12" fill="#FFFFFF">* 1280x720 or 1920x1080</text>
+    <text x="880" y="649" font-size="12" fill="#FFFFFF">* Frame-accurate progress bar</text>
+  </g>
+
+  <text x="995" y="755" text-anchor="middle" font-size="11" fill="#6B7280" font-style="italic">no AI needed - just ffmpeg + image</text>
+
+  <!-- Arrows from columns to mix -->
+  <line x1="290" y1="660" x2="290" y2="770" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="650" y1="660" x2="650" y2="770" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="995" y1="660" x2="995" y2="770" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Visual joins at the right side too -->
+  <path d="M 995 770 Q 995 800 800 800 L 800 800" fill="none" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============== MIX SECTION ============== -->
+  <g filter="url(#softShadow)">
+    <rect x="200" y="770" width="900" height="110" rx="16" fill="url(#mix)"/>
+    <rect x="200" y="770" width="900" height="110" rx="16" fill="none" stroke="#C4B5FD" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="240" y="810" font-size="20" font-weight="700" fill="#FFFFFF">Audio + Visual mix</text>
+    <text x="240" y="833" font-size="13" fill="#EDE9FE">ffmpeg filter graph (single pass)</text>
+
+    <text x="240" y="862" font-size="12" fill="#FFFFFF">* Voice track + ambient bed (Music 2.6 or procedural)</text>
+    <text x="700" y="862" font-size="12" fill="#FFFFFF">* Sidechain ducking: -12 dB when voice speaks</text>
+  </g>
+
+  <!-- Arrow from mix to encode -->
+  <line x1="650" y1="880" x2="650" y2="920" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============== ENCODE SECTION ============== -->
+  <g filter="url(#softShadow)">
+    <rect x="130" y="920" width="1040" height="120" rx="16" fill="url(#encode)"/>
+    <rect x="130" y="920" width="1040" height="120" rx="16" fill="none" stroke="#6EE7B7" stroke-width="2" filter="url(#glow)"/>
+
+    <text x="170" y="958" font-size="20" font-weight="700" fill="#FFFFFF">Hardware-accelerated encode</text>
+    <text x="170" y="980" font-size="12" fill="#D1FAE5">ffmpeg with the right encoder for the hardware (256x256 canary probes each, 1-2 min for 6-min 1080p)</text>
+
+    <!-- 4 encoder chips -->
+    <g>
+      <rect x="170" y="995" width="220" height="32" rx="8" fill="#022C22" stroke="#34D399" stroke-width="1.5"/>
+      <text x="280" y="1016" text-anchor="middle" font-size="13" font-weight="600" fill="#A7F3D0">h264_nvenc  (NVIDIA)</text>
+    </g>
+    <g>
+      <rect x="410" y="995" width="220" height="32" rx="8" fill="#022C22" stroke="#34D399" stroke-width="1.5"/>
+      <text x="520" y="1016" text-anchor="middle" font-size="13" font-weight="600" fill="#A7F3D0">h264_qsv  (Intel)</text>
+    </g>
+    <g>
+      <rect x="650" y="995" width="220" height="32" rx="8" fill="#022C22" stroke="#34D399" stroke-width="1.5"/>
+      <text x="760" y="1016" text-anchor="middle" font-size="13" font-weight="600" fill="#A7F3D0">h264_amf  (AMD)</text>
+    </g>
+    <g>
+      <rect x="890" y="995" width="260" height="32" rx="8" fill="#022C22" stroke="#34D399" stroke-width="1.5"/>
+      <text x="1020" y="1016" text-anchor="middle" font-size="13" font-weight="600" fill="#A7F3D0">libx264  (CPU, free fallback)</text>
+    </g>
+  </g>
+
+  <!-- Arrow from encode to output -->
+  <line x1="650" y1="1040" x2="650" y2="1062" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- ============== OUTPUT (the rendered video) ============== -->
+  <g filter="url(#softShadow)">
+    <rect x="350" y="1062" width="600" height="30" rx="8" fill="url(#barGrad)"/>
+    <text x="650" y="1082" text-anchor="middle" font-size="13" font-weight="700" fill="#022C22">MP4 ready  -  H.264 + AAC  -  1280x720 or 1920x1080  -  0% to 100% in real time</text>
+  </g>
+</svg>

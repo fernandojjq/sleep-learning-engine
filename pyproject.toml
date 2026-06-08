@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sleep_learning_engine"
-version = "0.1.0"
+version = "1.0.0"
 description = "Sleep learning video studio. Turns text prompts into multi-hour, sleep-optimized MP4s with a built-in dark GUI. Provider-agnostic, runs free or local."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,7 +30,7 @@ keywords = [
 authors = [{ name = "Fernando Jimenez" }]
 maintainers = [{ name = "Fernando Jimenez" }]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: X11 Applications",
     "Environment :: Win32 (MS Windows)",
     "Environment :: MacOS X",
