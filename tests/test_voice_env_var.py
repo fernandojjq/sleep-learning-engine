@@ -146,3 +146,75 @@ def test_default_prompt_loaded_from_package_data() -> None:
         f"expected for the full Sleeping Dev prompt. The built-in fallback "
         f"may have been committed by mistake."
     )
+
+
+# ---------------------------------------------------------------------------
+# resolve_paths() legacy-toml fallback regression
+# ---------------------------------------------------------------------------
+# The cloud notebooks' CONFIG cell writes ``.sleeplens.toml`` (the legacy
+# name), not the new ``.sleep_learning_engine.toml``. ``resolve_paths``
+# MUST honour that fallback so the cloud-rendered video picks up the user's
+# settings - the previous build computed the fallback correctly and then
+# dropped it on the floor by hardcoding the new name in the
+# ``ProjectPaths`` constructor. This test pins both halves: the toml that
+# exists wins, and ``paths.config_file`` actually points at it.
+
+
+def test_resolve_paths_legacy_toml_fallback(tmp_path, monkeypatch):
+    """A work dir with only the legacy .sleeplens.toml is picked up."""
+    from sleep_learning_engine.config import load_settings, resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    # Ensure no leftover legacy env var pollutes the test.
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    # Only the legacy name is on disk.
+    (tmp_path / ".sleeplens.toml").write_text(
+        'tts_voice = "en-US-BrianNeural"\n'
+        'ambient_volume = 0.34\n',
+        encoding="utf-8",
+    )
+    assert not (tmp_path / ".sleep_learning_engine.toml").exists()
+
+    paths = resolve_paths()
+
+    assert paths.config_file == tmp_path / ".sleeplens.toml", (
+        f"Expected the legacy .sleeplens.toml to be picked up, got "
+        f"{paths.config_file}. The fallback in resolve_paths() is not "
+        f"flowing through to ProjectPaths.config_file."
+    )
+    settings = load_settings(paths.config_file)
+    assert settings.tts_voice == "en-US-BrianNeural"
+    assert settings.ambient_volume == 0.34
+
+
+def test_resolve_paths_new_toml_wins_over_legacy(tmp_path, monkeypatch):
+    """If both names exist, the new one wins (the documented preference)."""
+    from sleep_learning_engine.config import resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    (tmp_path / ".sleep_learning_engine.toml").write_text(
+        "tts_voice = \"en-US-AriaNeural\"\n", encoding="utf-8"
+    )
+    (tmp_path / ".sleeplens.toml").write_text(
+        "tts_voice = \"en-US-BrianNeural\"\n", encoding="utf-8"
+    )
+
+    paths = resolve_paths()
+    assert paths.config_file == tmp_path / ".sleep_learning_engine.toml"
+
+
+def test_resolve_paths_no_toml_does_not_crash(tmp_path, monkeypatch):
+    """Missing toml is fine - paths.config_file is just the new-name path."""
+    from sleep_learning_engine.config import resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    paths = resolve_paths()
+    # No toml on disk; resolve_paths still returns a usable ProjectPaths
+    # pointing at the (non-existent) preferred name. load_settings handles
+    # the missing-file case separately by falling back to AppSettings().
+    assert paths.config_file == tmp_path / ".sleep_learning_engine.toml"

@@ -149,5 +149,12 @@ def resolve_paths(
         ffmpeg_bin=ffmpeg_bin,
         ffprobe_bin=ffprobe_bin,
         log_dir=root / "logs",
-        config_file=root / ".sleep_learning_engine.toml",
+        # Honour the fallback resolved above: new name
+        # ``.sleep_learning_engine.toml`` is preferred, legacy
+        # ``.sleeplens.toml`` is accepted if the new one is missing.
+        # The previous version hardcoded the new name here, so the
+        # fallback was computed but discarded - any project root that
+        # only had the legacy toml (every cloud notebook CONFIG cell)
+        # silently fell through to package defaults.
+        config_file=config_file,
     )

@@ -172,6 +172,26 @@ def _cmd_render(args: argparse.Namespace) -> int:
         )
         return 2
 
+    # Log the resolved settings so a notebook or one-off script can
+    # verify which values the render is actually using. Without this
+    # line, a stale toml or a forgotten env var is invisible until the
+    # final audio sounds wrong. Catches the three classic mistakes:
+    # - cell 1 not re-run after editing CONFIG (toml not refreshed)
+    # - env var typo (env var is dropped, default wins)
+    # - work dir mismatch (toml at the wrong path, defaults win)
+    print(
+        f"[config] tts_voice={settings.tts_voice}  rate={settings.tts_rate}  "
+        f"pitch={settings.tts_pitch}\n"
+        f"[config] ambient_volume={settings.ambient_volume}  "
+        f"ambient_duck_db={settings.ambient_duck_db}\n"
+        f"[config] pause_between_paragraphs={settings.pause_between_paragraphs}  "
+        f"output_preset={settings.output_preset.value}  "
+        f"hardware_accel={settings.hardware_accel}\n"
+        f"[config] render_threads={settings.render_threads}  "
+        f"config_file={paths.config_file}",
+        flush=True,
+    )
+
     cancelled = {"flag": False}
 
     def on_event(event: RenderEvent) -> None:
