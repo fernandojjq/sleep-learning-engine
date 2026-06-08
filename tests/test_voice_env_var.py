@@ -218,3 +218,78 @@ def test_resolve_paths_no_toml_does_not_crash(tmp_path, monkeypatch):
     # pointing at the (non-existent) preferred name. load_settings handles
     # the missing-file case separately by falling back to AppSettings().
     assert paths.config_file == tmp_path / ".sleep_learning_engine.toml"
+
+
+# ---------------------------------------------------------------------------
+# Cloud notebook cell 5 (download) picks the newest MP4 by mtime
+# ---------------------------------------------------------------------------
+# The CLI calls paths.unique_output() which NEVER overwrites an existing
+# file - the second render goes to <stem>-1.mp4, the third to <stem>-2.mp4,
+# etc. The cloud notebook cell 5 (download) must therefore match
+# <stem>*.mp4 (not just <stem>.mp4) and pick the newest by mtime.
+# The previous version of cell 5 used glob('<stem>.mp4') which only
+# matched the first render's file, so every re-run downloaded the OLD MP4
+# and the user thought the new render was identical to the previous one.
+
+
+def test_unique_output_never_overwrites(tmp_path, monkeypatch):
+    """paths.unique_output returns -1.mp4, -2.mp4, etc. for repeat stems."""
+    from sleep_learning_engine.config import ProjectPaths, resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+    paths = resolve_paths()
+    paths.ensure()
+
+    a = paths.unique_output("demo")
+    a.write_bytes(b"render-one")
+    b = paths.unique_output("demo")
+    b.write_bytes(b"render-two")
+    c = paths.unique_output("demo")
+    c.write_bytes(b"render-three")
+
+    assert a.name == "demo.mp4"
+    assert b.name == "demo-1.mp4"
+    assert c.name == "demo-2.mp4"
+    # All three are distinct files, none was overwritten.
+    assert a.read_bytes() == b"render-one"
+    assert b.read_bytes() == b"render-two"
+    assert c.read_bytes() == b"render-three"
+
+
+def test_cell5_glob_picks_newest_by_mtime(tmp_path):
+    """Mirror the cell 5 logic: glob '<stem>*.mp4' + sort by mtime desc."""
+    import os
+    import time
+    import glob
+
+    out = tmp_path / "output"
+    out.mkdir()
+
+    # Simulate three renders, oldest first.
+    names = ["demo.mp4", "demo-1.mp4", "demo-2.mp4"]
+    for i, n in enumerate(names):
+        p = out / n
+        p.write_bytes(f"render-{i}".encode())
+        # Touch with strictly increasing mtimes.
+        t = time.time() + i
+        os.utime(p, (t, t))
+
+    # The OLD cell 5 pattern - matches only the first render.
+    old_matches = sorted(glob.glob(str(out / "demo.mp4")))
+    assert old_matches == [str(out / "demo.mp4")], (
+        "Sanity: the old pattern only finds the first render. If the user "
+        "uses this pattern in cell 5, they download the OLD MP4 on every "
+        "re-run. This is the bug the cell 5 fix prevents."
+    )
+
+    # The NEW cell 5 pattern - matches all, picks newest by mtime.
+    new_matches = sorted(
+        glob.glob(str(out / "demo*.mp4")),
+        key=os.path.getmtime,
+        reverse=True,
+    )
+    assert new_matches[0] == str(out / "demo-2.mp4"), (
+        f"Expected the newest render (demo-2.mp4) to be picked, got "
+        f"{new_matches[0]}. The cell 5 fix is broken."
+    )
