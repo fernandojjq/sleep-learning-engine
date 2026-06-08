@@ -310,14 +310,22 @@ it overrides the default for that session (saved in
   or `es-AR-ElenaNeural`.
 
 **Ambient does not show up**
-- Open `assets\ambient\` and check the 14 `.ogg` files are
-  there. If the folder is empty, run once:
-  `uv run python scripts\generate_ambient.py`
-- If you want the generator to **leave the tracks at the same
-  volume** (important: the mixer does duck/unduck, and if one
-  track is 6 dB louder than another it will wake you up), add
-  `--normalize`:
-  `uv run python scripts\generate_ambient.py --normalize`
+- The bundled library (97 tracks, generated with Minimax Music
+  2.6) ships with the repo for the Minimax contest window. If
+  you cloned before the bundle or stripped it post-contest, drop
+  your own royalty-free loops into `assets\ambient\`. The studio
+  accepts `.mp3`, `.wav`, `.ogg`, `.flac`, `.m4a`, and `.aac`.
+  Use keywords in the filename (rain, ocean, lofi, alpha, ...)
+  so the ambient scanner routes them to the right script.
+- To generate new beds with Minimax Music 2.6, use the
+  [minimax audio](https://www.minimax.io/audio) web app or the
+  API at `https://api.minimaxi.com/v1`. Drop the output files
+  straight into `assets\ambient\`. No code change needed.
+- If you want all tracks at the same volume (important: the
+  mixer does duck/unduck, and a 6 dB level difference between
+  tracks is audible and disruptive), normalise with:
+  `uv run python scripts/normalize_ambient.py`. A 30-day backup
+  of the originals is kept in `assets\ambient\.loudnorm-backup\`.
 
 **I want the ambient to vary, not always the same track**
 - By default, sleep_learning_engine builds a **shuffled

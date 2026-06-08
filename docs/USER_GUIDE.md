@@ -46,19 +46,33 @@ Si ya tienes ffmpeg en el PATH del sistema, tambien lo encuentra.
 Opcionalmente puedes setear la variable `FFMPEG_BIN` apuntando a tu
 binario.
 
-### 4. Generar la libreria de ambientes (una vez)
+### 4. Llenar `assets\ambient\` con tus pistas (una vez)
 
-Para no depender de internet ni de copyright, el proyecto trae un
-generador procedural. Solo correlo una vez:
+La carpeta `assets\ambient\` es tuya. El mixer del studio escanea
+esa carpeta en cada render y matchea por keyword (rain, ocean, lofi,
+alpha, space, fire, wind, ...) para que la cama ambient combine con
+el guion.
+
+Como llenarla:
+
+- **Las 97 pistas que vienen en el repo** (generadas con Minimax
+  Music 2.6 durante el periodo del concurso) funcionan out of the
+  box, no hay que hacer nada.
+- **Tus propias pistas** royalty-free: copia `.mp3` / `.wav` / `.ogg`
+  a la carpeta. Usa keywords en el nombre del archivo (`rain-soft.mp3`,
+  `lofi-deep-focus.mp3`) para que el scanner los enrute al guion
+  correcto.
+- **Mas pistas de Minimax Music 2.6**: genera en
+  [minimax audio](https://www.minimax.io/audio) y arrastra el
+  resultado a la carpeta.
+
+Para igualar el volumen entre pistas (importante: el mixer hace
+duck/unduck, una pista 6 dB mas alta que otra te despierta), corre
+una vez:
 
 ```powershell
-uv run python scripts/generate_ambient.py
+uv run python scripts/normalize_ambient.py
 ```
-
-Te crea 14 pistas en `assets\ambient\` (rain, ocean, forest, fire,
-wind, river, brown noise, pink noise, alpha binaural, alpha pulse,
-lofi, night crickets, cafe murmur). Cada una 60 segundos, perfecta
-para loopear. Estas NO se suben al repo, son tu copia local.
 
 ### 5. (Opcional) API key para generar el guion
 
@@ -251,8 +265,11 @@ D:\proyectos\Proyectos Github\sleep_learning_engine\
   directo en la pestana Provider de la GUI.
 
 **"No ambient tracks found"**
-- No has corrido `scripts/generate_ambient.py` o tu carpeta
-  `assets\ambient\` esta vacia. Correl una vez.
+- La carpeta `assets\ambient\` esta vacia o no tiene archivos de
+  audio. Llenala con tus pistas royalty-free (`.mp3`, `.wav`,
+  `.ogg`, `.flac`, `.m4a`, `.aac`) o genera nuevas con
+  [Minimax Music 2.6](https://www.minimax.io/audio) y copialas ahi.
+  El scanner matchea por keyword en el nombre del archivo.
 
 **El video sale sin barra de progreso**
 - Si la imagen de fondo es muy oscura, la barra verde aun se ve.

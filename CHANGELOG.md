@@ -25,10 +25,13 @@ provider-agnostic out of the box. **45/45 tests green.** MIT licensed.
   (17+ presets, 40+ languages, emotion + sound-tag control) by setting
   `SLEEP_LEARNING_ENGINE_TTS_VOICE` to a Speech 2.8 voice or wiring a
   custom TTS backend.
-- **Music 2.6 ready**: the 97 ambient tracks bundled for the contest are
-  procedural, generated locally. To swap in **Minimax Music 2.6** for
-  per-video beds, replace the procedural generator with a Music 2.6 call
-  in `scripts/generate_ambient.py` (the same `TRACKS` tuple format).
+- **Music 2.6 ready**: the 97 ambient tracks bundled for the contest
+  were generated externally with **Minimax Music 2.6** and ship in
+  `assets/ambient/` for the contest window. To swap in fresh
+  per-video beds, generate them with the [Minimax audio](https://www.minimax.io/audio)
+  web app or the API at `https://api.minimaxi.com/v1` and drop the
+  output `.mp3` files straight into `assets/ambient/`. No code
+  change needed - the studio picks up new files on the next render.
 - **Hardware-accelerated encode**: NVENC on NVIDIA (1-2 min for a 6-min
   1080p video on a T4), QuickSync on Intel, AMF on AMD, libx264 fallback.
   The encoder canary probes 256x256 (above NVENC's 145 px H.264 minimum)
@@ -121,9 +124,9 @@ provider-agnostic out of the box. **45/45 tests green.** MIT licensed.
   Two-pass EBU R128 `loudnorm` over every audio file in
   `assets/ambient/`, bringing integrated loudness to -23 LUFS
   (broadcast standard) and true peak to -1.5 dBTP. Keeps a 30-day
-  backup in `assets/ambient/.loudnorm-backup/`. Wired into
-  `generate_ambient.py --normalize` so a one-liner produces
-  volume-matched tracks in a single command.
+  backup in `assets/ambient/.loudnorm-backup/`. Standalone script
+  - run once on your own collection to bring all tracks to the
+  same level.
 - **Random ambient playlist without repetition**
   (`build_ambient_playlist` in `src/sleep_learning_engine/audio/mixer.py`).
   Filters the library to the keyword pool that matches the script,
@@ -159,12 +162,13 @@ provider-agnostic out of the box. **45/45 tests green.** MIT licensed.
   (Speech 2.8, Music 2.6, Visual), MIX, ENCODE (NVENC / QSV / AMF
   / libx264), and the final MP4 output. Used in the contest
   submission to communicate the pipeline at a glance.
-- **Contest-period ambient bundle**: the 97 procedurally generated
-  ambient tracks (rain, ocean, forest, fire, wind, river, brown
-  noise, pink noise, alpha binaural, alpha pulse, lofi, night
-  crickets, cafe murmur, ...) ship with the repo for the duration
-  of the Minimax contest window. See `docs/CONTEST_NOTICE.md` and
-  `scripts/strip_ambient.py` for the post-contest cleanup.
+- **Contest-period ambient bundle**: the 97 ambient tracks shipped
+  with the repo were generated externally with **Minimax Music 2.6**
+  (rain, ocean, forest, fire, wind, river, brown noise, pink noise,
+  alpha binaural, alpha pulse, lofi, night crickets, cafe murmur,
+  ...) and are bundled for the duration of the Minimax contest
+  window. See `docs/CONTEST_NOTICE.md` and `scripts/strip_ambient.py`
+  for the post-contest cleanup.
 - **Personal Colab notebook** `docs/cloud/drive_render.ipynb` with
   generator `scripts/generate_drive_notebook.py`. Defaults to
   per-session upload (Mode B): the script and image change per

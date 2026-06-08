@@ -329,26 +329,22 @@ python run.py providers
 
 The JSON output is one line, easy to wire into CI.
 
-## Bundled ambient library
+## Ambient library
 
-The studio does **not** ship audio files. To populate the ambient
-library, run the generator:
+The `assets/ambient/` directory is yours. The studio's mixer scans
+it on every render, matches each file by keyword in the filename
+(rain, ocean, lofi, alpha, space, fire, wind, ...), and builds a
+shuffled no-repeat playlist from the matches. The studio accepts
+`.mp3`, `.wav`, `.ogg`, `.flac`, `.m4a`, and `.aac`.
 
-```bash
-uv run python scripts/generate_ambient.py
-```
-
-This produces 14 procedurally-synthesised beds (rain, ocean, forest,
-fire, wind, river, brown noise, pink noise, alpha binaural, alpha
-pulse, lofi, night crickets, cafe murmur) into `assets/ambient/`,
-each 60 seconds of stereo, designed to loop cleanly, and tagged with
-the keywords the scanner looks for.
-
-Why not commit them? See `assets/ambient/README.md`. The short
-version: synthetic audio can still match third-party fingerprinting
-systems, and shipping the generated files in a public repo would
-expose downstream users to false-positive copyright claims on the
-videos they produce.
+For the Minimax contest submission window the directory ships with
+97 tracks generated with **Minimax Music 2.6** so the judges can
+clone, install, and render immediately. The directory is
+contest-only bundled - normal usage is to drop your own royalty-free
+loops or generate fresh tracks with the [Minimax audio](https://www.minimax.io/audio)
+web app and copy them in. See `assets/ambient/README.md` and
+`docs/CONTEST_NOTICE.md` for the full story and the post-contest
+cleanup (`scripts/strip_ambient.py`).
 
 ## Repository layout
 

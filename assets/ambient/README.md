@@ -1,50 +1,70 @@
 # Ambient bed library
 
-## Status (June 2026)
+This directory is yours. The studio's ambient mixer scans it on every
+render and picks tracks by keyword (rain, ocean, lofi, alpha, space,
+fire, wind, lofi, ...) so the bed matches the topic of the script.
 
-**Contest-period exception.** The 97 procedurally generated ambient
-tracks are bundled in this directory for the duration of the
-**Minimax contest submission window** so judges can clone, install, and
-render immediately. See `docs/CONTEST_NOTICE.md` for the full rationale
-and `scripts/strip_ambient.py` for the post-contest cleanup.
+## How to add your own tracks
 
-## Original policy (will be restored after the contest)
+Drop any royalty-free loop into this folder. The studio accepts
+`.mp3`, `.wav`, `.ogg`, `.flac`, `.m4a`, and `.aac`. Use keywords in
+the filename so the ambient scanner can match them to your script:
 
-Normally, the audio files in this directory are **not** shipped with
-the source tree. Anyone who clones the repo can generate a personal
-copy locally with the bundled script:
-
-```bash
-uv run python scripts/generate_ambient.py
+```
+rain-soft.mp3            -> "rain" keyword
+ocean-night-45min.mp3    -> "ocean" keyword
+lofi-deep-focus.mp3      -> "lofi" keyword
+space-ambient-1.mp3      -> "space" keyword
+fireplace-gentle.mp3     -> "fire" keyword
 ```
 
-The script writes 97 procedurally generated tracks (rain, ocean,
-forest, fire, wind, river, brown noise, pink noise, alpha binaural,
-alpha pulse, lofi, night crickets, cafe murmur, ...) into this folder.
-The studio's mixer reads them automatically the next time you render.
+The same scanner is used to build the playlist. With a mix of keyword
+hits and unrelated tracks, the studio filters the library down to the
+subset that matches the script and shuffles them with the
+no-repetition playlist builder. A 6-hour video with 14 matching tracks
+plays each track ~25 times spread evenly across the runtime, never
+the same track back-to-back.
 
-## Why is the audio normally kept out of git?
+The 97 `.mp3` files in this directory were generated with
+**Minimax Music 2.6** and are bundled for the
+[Minimax contest submission window](docs/CONTEST_NOTICE.md) so the
+judges can clone, install, and render without setup. They are not
+required to render - the studio runs fine with an empty folder (the
+voice plays solo) or with just your own tracks.
 
-Even fully synthesised audio can match fingerprints in third-party
-content identification systems. Shipping the generated files in a
-public repository would let anyone reuse the same fingerprint, which
-risks false-positive copyright claims on videos produced with the
-studio. Keeping the audio out of the public tree avoids that
-exposure entirely.
+## Removing the bundled tracks
 
-For the contest, the user accepted that exposure in exchange for a
-frictionless judge experience. Revert with `scripts/strip_ambient.py`
-once the contest window closes.
+When the contest window closes, the bundled tracks are no longer
+needed and can be removed. `scripts/strip_ambient.py` does this in
+one command:
 
-## Want different sounds?
+```bash
+uv run python scripts/strip_ambient.py --dry-run    # preview
+uv run python scripts/strip_ambient.py             # actual strip
+```
 
-Edit `scripts/generate_ambient.py` to add a new generator, change
-seeds, or alter the loop length. The file is intentionally short
-and well-commented; a Python file with `gen_*` functions and a
-matching entry in the `TRACKS` tuple is all you need.
+After stripping, the folder is empty (or contains only your own
+royalty-free tracks), and the studio runs the same way as a fresh
+clone: scan the folder, match by keyword, mix with the voice.
 
-## Want to add your own royalty-free loops?
+## Want longer or more tracks?
 
-Drop them here. The studio accepts `.mp3`, `.wav`, `.ogg`, `.flac`,
-`.m4a`, and `.aac`. Use keywords in the filename (rain, ocean, lofi,
-alpha, ...) so the ambient scanner matches them to your script.
+Generate more with **Minimax Music 2.6** directly and drop the
+output `.mp3` files into this folder. The studio picks them up on
+the next render - no code change, no rebuild. Use descriptive
+filenames so the keyword scanner can route them to the right script.
+
+## Volume normalisation
+
+If your tracks are at wildly different levels, run
+`scripts/normalize_ambient.py` to bring them all to -23 LUFS (broadcast
+standard) and -1.5 dBTP. The studio's mixer does ducking and unducking,
+and a 6 dB level difference between tracks is audible and disruptive
+when one track fades in over the voice.
+
+```bash
+uv run python scripts/normalize_ambient.py
+```
+
+A 30-day backup of the originals is kept in
+`assets/ambient/.loudnorm-backup/`.
