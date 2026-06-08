@@ -327,12 +327,13 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
         bed_label_in = "[1:a]"
 
     # Filter graph:
-    #   1. Pad the voice to target_duration so silent paragraph pauses survive.
+    #   1. Trim the voice to target_duration (no padding - we don't
+    #      want to insert any code-side silence; any inter-paragraph
+    #      gaps come from the TTS stitch's natural silences only).
     #   2. Trim the (already looped) bed to match the voice duration.
     #   3. Apply sidechain ducking on the bed whenever the voice is active.
     filter_complex = (
         f"[0:a]volume={spec.voice_volume},aresample=48000,asetpts=PTS-STARTPTS,"
-        f"apad=whole_dur={spec.target_duration:.3f},"
         f"atrim=0:{spec.target_duration:.3f}[voice];"
         f"{bed_label_in}atrim=0:{spec.target_duration:.3f},"
         f"volume={spec.ambient_volume},aresample=48000[bed];"
@@ -376,10 +377,16 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
 
 def _convert_voice_only(spec: MixSpec) -> Path:
     spec.output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Use apad + atrim to actually pad with silence, not just stop early.
+    # No apad: any code-inserted silence is undesirable for sleep
+    # content. If the voice is shorter than target_duration the mix
+    # just ends with a beat of ambient-only (the bed continues to
+    # play) and then the encode finishes; if it's longer, the
+    # atrim cuts the tail. Both are bounded by <100 ms in practice
+    # because the TTS stitch now preserves exact per-segment
+    # durations (re-encode with first_pts=0, no encoder pre-roll).
     filter_complex = (
-        f"[0:a]aresample=48000,apad=whole_dur={spec.target_duration:.3f},"
-        f"atrim=0:{spec.target_duration:.3f},asetpts=PTS-STARTPTS[aout]"
+        f"[0:a]aresample=48000,atrim=0:{spec.target_duration:.3f},"
+        f"asetpts=PTS-STARTPTS[aout]"
     )
     cmd = [
         str(spec.ffmpeg_bin),

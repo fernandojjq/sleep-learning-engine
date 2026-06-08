@@ -144,14 +144,28 @@ class AppSettings:
     # TTS
     tts_backend: TTSBackend = TTSBackend.EDGE
     tts_voice: str = "en-US-BrianNeural"  # Deep male voice, top pick for sleep.
-    tts_rate: str = "-5%"  # Slightly slower for sleepy narration.
+    tts_rate: str = "-15%"  # Deliberately slow for sleepy narration; faster
+                    # rates (e.g. -5%) cause Edge TTS to insert more
+                    # micro-pauses at word boundaries, which the listener
+                    # can read as 'random hesitations' in the voice.
+                    # Slower rates give Edge TTS more time to chain
+                    # phonemes continuously.
     tts_pitch: str = "-2Hz"
 
     # Scripting
     script_topic: str = ""
     script_file: str = ""
     target_word_count: int = 4500  # ~30 min of narration.
-    pause_between_paragraphs: float = 1.8
+    pause_between_paragraphs: float = 0.0  # 0 = no code-inserted
+        # silence between paragraphs. Any pacing the listener
+        # perceives is then purely the natural prosody of the
+        # TTS voice + the small inter-sentence silences each
+        # model produces on its own. The previous default of
+        # 1.8 s added 1.8 s of forced silence between every
+        # paragraph pair, which the user reported as
+        # distracting in sleep content. If you want a small
+        # gap, set this in the GUI slider or .sleeplens.toml
+        # but the default is now off.
     language: str = "en"
 
     # Visual
