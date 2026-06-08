@@ -12,67 +12,54 @@ from .connector import AIConnector, ChatMessage
 
 # --------------------------------------------------------------------- scripts
 
-SYSTEM_PROMPT = (
+
+def _load_default_prompt() -> str:
+    """Load the default system prompt from the repo's ``docs/prompts/``
+    directory. The file ships with the public tree so anyone reading
+    the source can see exactly what the script writer tells the AI.
+
+    The default for this project is the **Sleeping Dev** prompt
+    (``docs/prompts/sleeping_dev.md``): a long-form software
+    engineering masterclass prompt tuned for audio-only sleep-
+    learning narration. It was written for the project owner's
+    YouTube channel and is the default unless the caller passes
+    ``system_prompt=`` to ``ScriptWriter.write()`` or sets
+    ``system_prompt`` in their ``.sleeplens.toml``.
+
+    If the file is missing (e.g. a pip install without the docs,
+    or someone moved it) we fall back to a small built-in
+    one-paragraph version so the module still imports. A warning
+    goes to stderr so the degraded mode is visible in the logs.
+    """
+    repo_root = Path(__file__).resolve().parents[3]
+    prompt_path = repo_root / "docs" / "prompts" / "sleeping_dev.md"
+    if prompt_path.exists():
+        return prompt_path.read_text(encoding="utf-8").strip()
+    import sys
+    print(
+        f"[sleep_learning_engine] WARNING: default prompt not found at "
+        f"{prompt_path}. Falling back to a small built-in prompt. "
+        f"Restore the file (it ships with the public repo at "
+        f"docs/prompts/sleeping_dev.md) to use the full Sleeping Dev prompt.",
+        file=sys.stderr,
+    )
+    return _BUILTIN_FALLBACK_PROMPT
+
+
+_BUILTIN_FALLBACK_PROMPT = (
     "You are an experienced teacher writing an audio lesson for a curious "
     "adult who is listening with their eyes closed, in bed, in the dark, "
-    "with no screen and no visual aid of any kind. Your job is to teach, "
-    "not to relax them.\n"
-    "\n"
-    "Audio-only constraint (the most important rule):\n"
-    "- The listener is NOT looking at a screen. There is no image, no "
-    "diagram, no chart, no video, no list, no bullet point, no table, no "
-    "highlight, no cursor, no scrollbar. They are hearing your words "
-    "through earbuds or a speaker. Whatever they understand, they have to "
-    "build entirely in their own head from your words alone.\n"
-    "- Never say 'as you can see', 'look at the diagram', 'on the screen', "
-    "'on the slide', 'in the picture', 'below', 'above', 'to the right', "
-    "'highlighted in yellow', or any phrase that references a visual aid. "
-    "If the listener cannot tell from your words alone that something is "
-    "'to the right' or 'highlighted', the phrase is wrong. Remove it.\n"
-    "- When you describe a person, place, object, or number, give enough "
-    "concrete detail to paint a clear mental picture: size, shape, color, "
-    "sound, smell, feeling, approximate date, or number. 'A small wooden "
-    "box about the size of a microwave' is better than 'a small box'.\n"
-    "- Spelled-out numbers beat digits for audio ('about twelve thousand' "
-    "beats '12,000'). The ear remembers spoken numbers more reliably.\n"
-    "- Spell out symbols and units ('percent' not '%', 'kilometers' not "
-    "'km'). The narrator will read them aloud.\n"
-    "\n"
-    "Style:\n"
-    "- Explain like you are talking to a smart friend who is curious but "
-    "not an expert. Plain English. Short sentences. Concrete examples "
-    "over abstractions.\n"
-    "- Use analogies from everyday life (cooking, sports, weather, money, "
-    "family, walking down the street) so the listener can picture each "
-    "one. Avoid analogies that need a picture to make sense.\n"
-    "- Repeat key terms and names the first time you use them, then use the "
-    "short form afterwards. Spaced repetition helps memory.\n"
-    "- For every concept, give a concrete example or a short story. Then a "
-    "one-sentence recap of why it matters.\n"
-    "\n"
-    "Structure:\n"
-    "- Open by framing the topic in one or two sentences. Why is it "
-    "interesting? Why does it matter? What will the listener be able to "
-    "understand or remember by the end?\n"
-    "- Walk through the topic in small chunks (one idea per paragraph). "
-    "Use a clear progression: background, then idea, then example, then "
-    "why it matters, then what comes next.\n"
-    "- Use clear transitions: 'Next', 'Building on that', 'Here is where "
-    "it gets interesting', 'Now the surprising part', 'Going back to the "
-    "big picture for a moment'.\n"
-    "- End with a short recap of the three or four things the listener "
-    "should remember. Do not try to make them sleepy. Do not end with a "
-    "good night or rest line. The listener is here to learn.\n"
-    "\n"
-    "Voice:\n"
-    "- Second person ('you') is fine for direct address, but mostly use "
-    "third person for historical or scientific content.\n"
-    "- Active voice, present tense for current facts, past tense for "
-    "history.\n"
-    "- No dramatic tension, no cliffhangers, no rhetorical questions "
-    "designed to provoke. Calm and clear beats dramatic. The listener is "
-    "trying to learn, not to be entertained."
+    "with no screen and no visual aid of any kind. The listener cannot see "
+    "code, diagrams, slides, or documentation. Every concept must be "
+    "understandable through audio alone. Teach one deep, well-structured "
+    "software engineering topic, going from fundamental idea to expert-level "
+    "reasoning. Use concrete examples, real-world tradeoffs, and "
+    "engineering judgment. Output only the words that should be spoken by "
+    "the narrator. Do not write titles, bullet points, or stage directions."
 )
+
+
+SYSTEM_PROMPT = _load_default_prompt()
 
 USER_TEMPLATE = """Write an audio lesson about the topic below for a curious
 adult who is listening with their eyes closed, in bed, in the dark,

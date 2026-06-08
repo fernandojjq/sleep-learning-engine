@@ -42,6 +42,20 @@ provider-agnostic out of the box. **45/45 tests green.** MIT licensed.
   for the post-contest cleanup.
 
 ### Changed
+- **Default script-generation system prompt is the "Sleeping Dev"
+  master-class prompt** (`docs/prompts/sleeping_dev.md`). The
+  studio used to ship a ~100-line built-in prompt inline in
+  `script_writer.py`. It now reads a 458-line long-form prompt
+  tuned for audio-only software engineering masterclasses from
+  `docs/prompts/sleeping_dev.md` (resolved relative to the
+  project root at import time). The file is part of the public
+  tree so anyone can read what the script writer tells the AI
+  on every call. If the file is missing (e.g. a pip install
+  without the docs, or someone moved it), the module falls
+  back to a small one-paragraph built-in prompt and logs a
+  warning to stderr. Callers can still override per-render via
+  `ScriptWriter.write(system_prompt=...)` or per-config via
+  `system_prompt = "..."` in `.sleeplens.toml`.
 - **Project renamed** from `sleeplens` to **Sleep Learning Engine**.
   Convention: `sleep_learning_engine` is the Python module (snake_case
   is the Python rule, hyphens are not allowed in module names),
@@ -134,6 +148,13 @@ provider-agnostic out of the box. **45/45 tests green.** MIT licensed.
   render path or the 720p+ultrafast local fallback.
 - **Architecture diagram** `docs/architecture-minimax.svg`. 1600x1100
   SVG that shows the full Minimax-integrated pipeline end-to-end,
+- **`docs/prompts/sleeping_dev.md`**: the default system prompt for
+  the script writer, shipped in the public tree so it is auditable
+  and editable. 458 lines, master-class software engineering script
+  style for audio-only sleep-learning narration. Used as the default
+  by `ScriptWriter.write()` unless overridden by the caller's
+  `system_prompt=` argument or the config file's `system_prompt`
+  field.
   with INPUT, SCRIPT (M3 / M2-her), three parallel columns
   (Speech 2.8, Music 2.6, Visual), MIX, ENCODE (NVENC / QSV / AMF
   / libx264), and the final MP4 output. Used in the contest
