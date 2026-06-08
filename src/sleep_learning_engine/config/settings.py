@@ -144,12 +144,7 @@ class AppSettings:
     # TTS
     tts_backend: TTSBackend = TTSBackend.EDGE
     tts_voice: str = "en-US-BrianNeural"  # Deep male voice, top pick for sleep.
-    tts_rate: str = "-15%"  # Deliberately slow for sleepy narration; faster
-                    # rates (e.g. -5%) cause Edge TTS to insert more
-                    # micro-pauses at word boundaries, which the listener
-                    # can read as 'random hesitations' in the voice.
-                    # Slower rates give Edge TTS more time to chain
-                    # phonemes continuously.
+    tts_rate: str = "-5%"  # Slightly slower for sleepy narration.
     tts_pitch: str = "-2Hz"
 
     # Scripting

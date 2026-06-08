@@ -165,8 +165,33 @@ def load_script_from_file(path: Path) -> Script:
 
 
 def _split_paragraphs(text: str) -> list[str]:
+    """Split a script into renderable paragraphs.
+
+    The split key is one or more blank lines (``\\n\\s*\\n+``). Any
+    single ``\\n`` that survives inside a chunk is then collapsed
+    to a single space, along with any other whitespace runs, so
+    the chunk the TTS sees is pure prose with no internal line
+    breaks. This matters because every TTS engine (Edge TTS,
+    Minimax Speech 2.8, ElevenLabs, etc.) interprets ``\\n`` as
+    a prosody boundary and inserts a micro-pause at each one -
+    which in audio sounds like the narrator is randomly
+    hesitating mid-sentence. The user's .txt can have whatever
+    formatting they like; the studio normalises to single-spaced
+    prose per paragraph before the TTS sees it.
+    """
     raw = re.split(r"\n\s*\n+", text)
-    return [chunk.strip() for chunk in raw if chunk.strip()]
+    out: list[str] = []
+    for chunk in raw:
+        # Collapse every internal whitespace run (single \n, \r,
+        # \t, multiple spaces) to one space. This is the same
+        # trick that fixes broken pypdf extraction on narrow-
+        # column PDFs (see MEMORY.md): a one-liner that re-
+        # introduces breaks at TRULY empty lines, not at every
+        # soft-wrap the source happened to use.
+        normalised = " ".join(chunk.split())
+        if normalised:
+            out.append(normalised)
+    return out
 
 
 # ----------------------------------------------------------- public surface
