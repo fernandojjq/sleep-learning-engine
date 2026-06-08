@@ -152,6 +152,20 @@ class TTSEngine:
         lines = [f"file '{seg.audio_path.as_posix()}'" for seg in segments]
         concat_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+        # We re-encode (libmp3lame at the same 48 kbps bitrate edge-tts
+        # ships) instead of the previous -c copy. The -c copy path
+        # preserves each per-segment mp3 encoder pre-roll as a
+        # ~30-100 ms silent frame at the start of every segment, which
+        # the ear hears as a micro-pause at every paragraph boundary
+        # - so a sentence that has the word "of" at the start of a
+        # paragraph reads as "... of <pause> ...", which sounds like
+        # the TTS is randomly hesitating. Re-encoding drops the
+        # pre-roll because the libmp3lame encoder starts from a
+        # clean timeline. The 48 kbps bitrate matches edge-tts's
+        # default mp3 output so the final size and quality are
+        # essentially identical to the -c copy version; the
+        # per-segment CPU cost is the only real change (a few
+        # seconds for a 27-paragraph script).
         cmd = [
             str(self.ffmpeg_bin),
             "-y",
@@ -161,8 +175,14 @@ class TTSEngine:
             "0",
             "-i",
             str(concat_file),
-            "-c",
-            "copy",
+            "-af",
+            "aresample=async=1:first_pts=0",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "48k",
+            "-write_xing",
+            "1",
             str(target),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
