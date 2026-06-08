@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import re
+import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
+from importlib import resources
 from pathlib import Path
 
 from ..core import ConfigError
@@ -14,33 +17,71 @@ from .connector import AIConnector, ChatMessage
 
 
 def _load_default_prompt() -> str:
-    """Load the default system prompt from the repo's ``docs/prompts/``
-    directory. The file ships with the public tree so anyone reading
-    the source can see exactly what the script writer tells the AI.
+    """Load the default system prompt from the public Sleeping Dev file.
 
     The default for this project is the **Sleeping Dev** prompt
-    (``docs/prompts/sleeping_dev.md``): a long-form software
-    engineering masterclass prompt tuned for audio-only sleep-
-    learning narration. It was written for the project owner's
-    YouTube channel and is the default unless the caller passes
+    (``docs/prompts/sleeping_dev.md`` in the source tree,
+    ``sleep_learning_engine/prompts/sleeping_dev.md`` in the
+    installed wheel): a 458-line long-form software engineering
+    masterclass prompt tuned for audio-only sleep-learning
+    narration. It was written for the project owner's YouTube
+    channel and is the default unless the caller passes
     ``system_prompt=`` to ``ScriptWriter.write()`` or sets
     ``system_prompt`` in their ``.sleeplens.toml``.
 
-    If the file is missing (e.g. a pip install without the docs,
-    or someone moved it) we fall back to a small built-in
-    one-paragraph version so the module still imports. A warning
-    goes to stderr so the degraded mode is visible in the logs.
+    Resolution order:
+
+    1. ``$SLEEP_LEARNING_ENGINE_HOME/docs/prompts/sleeping_dev.md``
+       (or the legacy ``$SLEEPLENS_HOME``). The Colab / Kaggle /
+       Drive notebooks set this to their writable work dir, so
+       dropping the prompt file in there lets the user edit the
+       default without touching the package install.
+    2. **Package data** shipped with the wheel
+       (``sleep_learning_engine/prompts/sleeping_dev.md``). This
+       is what `pip install` from the public tarball gets you -
+       the prompt travels with the package, so every install gets
+       the same default without any extra setup.
+    3. **Repo root** relative to this file
+       (``<repo>/docs/prompts/sleeping_dev.md``). This is what
+       `uv run` from a source checkout gets you, before the
+       wheel has been built.
+    4. A small one-paragraph **built-in fallback** with a
+       warning to stderr. The module still imports and the
+       script writer still works, just with a much shorter
+       default prompt. Restore any of the above paths to
+       re-enable the full Sleeping Dev prompt.
     """
+    # 1. Env-var override (notebook workflow)
+    env_home = os.environ.get("SLEEP_LEARNING_ENGINE_HOME") or os.environ.get("SLEEPLENS_HOME")
+    if env_home:
+        candidate = Path(env_home) / "docs" / "prompts" / "sleeping_dev.md"
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8").strip()
+
+    # 2. Package data (pip install from the public tarball)
+    try:
+        packaged = resources.files("sleep_learning_engine").joinpath(
+            "prompts", "sleeping_dev.md"
+        )
+        if packaged.is_file():
+            return packaged.read_text(encoding="utf-8").strip()
+    except (ModuleNotFoundError, AttributeError):
+        # Older Python or unusual install layout. Skip silently.
+        pass
+
+    # 3. Repo root (uv run from a source checkout)
     repo_root = Path(__file__).resolve().parents[3]
-    prompt_path = repo_root / "docs" / "prompts" / "sleeping_dev.md"
-    if prompt_path.exists():
-        return prompt_path.read_text(encoding="utf-8").strip()
-    import sys
+    candidate = repo_root / "docs" / "prompts" / "sleeping_dev.md"
+    if candidate.exists():
+        return candidate.read_text(encoding="utf-8").strip()
+
+    # 4. Built-in fallback
     print(
-        f"[sleep_learning_engine] WARNING: default prompt not found at "
-        f"{prompt_path}. Falling back to a small built-in prompt. "
-        f"Restore the file (it ships with the public repo at "
-        f"docs/prompts/sleeping_dev.md) to use the full Sleeping Dev prompt.",
+        "[sleep_learning_engine] WARNING: default prompt not found in any "
+        "of the expected locations (env var, package data, repo root). "
+        "Falling back to a small built-in prompt. The full Sleeping Dev "
+        "prompt ships in the public repo at docs/prompts/sleeping_dev.md "
+        "and in the wheel under sleep_learning_engine/prompts/.",
         file=sys.stderr,
     )
     return _BUILTIN_FALLBACK_PROMPT

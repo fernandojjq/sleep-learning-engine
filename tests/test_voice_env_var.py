@@ -90,3 +90,59 @@ def test_empty_env_var_does_not_override(tmp_path: Path, monkeypatch) -> None:
     settings = load_settings(tmp_path / "missing.toml")
     # Falls through to the default.
     assert settings.tts_voice == "en-US-BrianNeural"
+
+
+# --------------------------------------------------------------------- prompt
+
+
+def test_default_prompt_is_sleeping_dev() -> None:
+    """The default system prompt the script writer sends on every
+    call is the Sleeping Dev master-class prompt. The check is
+    content-shape rather than byte-exact so a future edit to the
+    file (new section, added paragraph) does not break the test;
+    the rule is that the prompt is the long-form Sleeping Dev
+    one shipped in docs/prompts/sleeping_dev.md, not a one-
+    paragraph built-in fallback."""
+
+    from sleep_learning_engine.ai.script_writer import (
+        _BUILTIN_FALLBACK_PROMPT,
+        SYSTEM_PROMPT,
+    )
+
+    assert len(SYSTEM_PROMPT) > 2000, (
+        f"Default prompt is suspiciously short ({len(SYSTEM_PROMPT)} chars). "
+        f"Expected the full Sleeping Dev prompt (4000+ chars); the built-in "
+        f"fallback is only {len(_BUILTIN_FALLBACK_PROMPT)} chars and would "
+        f"indicate the package data file is not being shipped."
+    )
+    assert "SLEEPING DEV" in SYSTEM_PROMPT, (
+        "Default prompt does not mention the Sleeping Dev channel - either "
+        "the wrong file is being loaded or the prompt was overwritten."
+    )
+    assert "audio" in SYSTEM_PROMPT.lower(), (
+        "Default prompt does not mention audio - either the wrong file is "
+        "being loaded or the prompt was edited in a way that lost the "
+        "audio-first contract."
+    )
+
+
+def test_default_prompt_loaded_from_package_data() -> None:
+    """The pip-install path uses importlib.resources to load the
+    prompt from the wheel. Verify the file ships with the wheel
+    (the file is declared in pyproject.toml's package-data)."""
+
+    from importlib import resources
+
+    packaged = resources.files("sleep_learning_engine").joinpath(
+        "prompts", "sleeping_dev.md"
+    )
+    assert packaged.is_file(), (
+        "docs/prompts/sleeping_dev.md is in the source tree but the "
+        "wheel does not include sleep_learning_engine/prompts/sleeping_dev.md. "
+        "Check pyproject.toml's [tool.setuptools.package-data] section."
+    )
+    assert packaged.stat().st_size > 2000, (
+        f"Packaged prompt is {packaged.stat().st_size} bytes, smaller than "
+        f"expected for the full Sleeping Dev prompt. The built-in fallback "
+        f"may have been committed by mistake."
+    )

@@ -100,7 +100,7 @@ where = ["src"]
 include = ["sleep_learning_engine*"]
 
 [tool.setuptools.package-data]
-sleep_learning_engine = ["py.typed"]
+sleep_learning_engine = ["py.typed", "prompts/*.md"]
 
 [tool.ruff]
 line-length = 100
