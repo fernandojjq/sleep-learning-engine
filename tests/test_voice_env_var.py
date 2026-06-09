@@ -359,3 +359,95 @@ def test_resolve_paths_ambient_falls_back_when_user_dir_empty(tmp_path, monkeypa
         "Empty user ambient dir should trigger the bundled fallback."
     )
     assert "sleep_learning_engine" in str(paths.ambient_dir)
+
+
+# ---------------------------------------------------------------------------
+# ambient_duck_db actually controls the filter graph
+# ---------------------------------------------------------------------------
+# The previous build had a sidechaincompress with hardcoded
+# ratio/threshold/release and ignored spec.ambient_duck_db. The
+# setting was loaded from the toml, passed to MixSpec, then dropped
+# on the floor when the filter graph was built. Changing
+# ambient_duck_db had no audible effect. This test pins the fix:
+# the value must reach the compand points string.
+
+
+def _capture_filter_graph(duck_db):
+    """Build a MixSpec, run the mixer, return the -filter_complex string.
+
+    Mocks subprocess.run so we do not need ffmpeg in the test env.
+    """
+    import subprocess
+    import tempfile
+    from pathlib import Path
+    from sleep_learning_engine.audio import mixer
+    from sleep_learning_engine.audio.mixer import MixSpec
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+
+        class R:
+            returncode = 0
+            stderr = ""
+            stdout = ""
+        return R()
+
+    original = subprocess.run
+    subprocess.run = fake_run
+    try:
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t)
+            voice = t / "voice.wav"
+            voice.write_bytes(b"")
+            bed = t / "bed.mp3"
+            bed.write_bytes(b"")
+            ffmpeg = t / "ffmpeg"
+            ffmpeg.write_bytes(b"")
+            spec = MixSpec(
+                voice_path=voice,
+                ambient_paths=[bed],
+                target_duration=10.0,
+                output_path=t / "out.wav",
+                ambient_volume=0.34,
+                ambient_duck_db=duck_db,
+                ffmpeg_bin=ffmpeg,
+            )
+            mixer.mix_bed_and_voice(spec)
+            idx = captured["cmd"].index("-filter_complex")
+            return captured["cmd"][idx + 1]
+    finally:
+        subprocess.run = original
+
+
+def test_mixer_duck_db_zero_means_no_duck():
+    """duck_db=0.0 -> attenuation factor 1.0 (bed unchanged)."""
+    graph = _capture_filter_graph(0.0)
+    assert "volume=1.0[bed_attenuated]" in graph, (
+        f"duck_db=0 should keep the bed at ambient_volume, got: {graph}"
+    )
+
+
+def test_mixer_duck_db_six_means_six_decibels():
+    """duck_db=6.0 -> attenuation factor 10**(-6/20) = 0.5012."""
+    graph = _capture_filter_graph(6.0)
+    assert "volume=0.5012[bed_attenuated]" in graph, (
+        f"duck_db=6 should attenuate by 6 dB (factor 0.5012), got: {graph}"
+    )
+
+
+def test_mixer_duck_db_twelve_means_twelve_decibels():
+    """duck_db=12.0 -> attenuation factor 10**(-12/20) = 0.2512."""
+    graph = _capture_filter_graph(12.0)
+    assert "volume=0.2512[bed_attenuated]" in graph, (
+        f"duck_db=12 should attenuate by 12 dB (factor 0.2512), got: {graph}"
+    )
+
+
+def test_mixer_duck_db_clamped_to_zero_on_negative():
+    """Negative dB would mean amplification; clamp to 0 (no attenuation)."""
+    graph = _capture_filter_graph(-3.0)
+    assert "volume=1.0[bed_attenuated]" in graph, (
+        f"Negative duck_db should clamp to no-attenuation, got: {graph}"
+    )

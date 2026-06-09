@@ -331,15 +331,34 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
     #      want to insert any code-side silence; any inter-paragraph
     #      gaps come from the TTS stitch's natural silences only).
     #   2. Trim the (already looped) bed to match the voice duration.
-    #   3. Apply sidechain ducking on the bed whenever the voice is active.
+    #   3. Apply ambient_duck_db as a CONSTANT offset to the bed
+    #      before mixing. Earlier versions used sidechaincompress
+    #      with hardcoded ratio/threshold/release, so changing the
+    #      setting in the CONFIG dict had no effect. The new approach
+    #      does the attenuation statically: the bed is multiplied by
+    #      10**(-duck_db/20) regardless of whether the voice is
+    #      active. This means:
+    #        - No 'pumping' when the voice starts and stops (the
+    #          music is at a constant level, not ducking back and
+    #          forth).
+    #        - ambient_duck_db actually does what the name promises:
+    #          a setting of 6.0 gives 6 dB of attenuation, 12.0
+    #          gives 12 dB, 0.0 leaves the bed at ambient_volume.
+    #      The voice is naturally loud enough (voice_volume=1.0
+    #      by default) to dominate the mix even without dynamic
+    #      ducking, which is the right behaviour for sleep content
+    #      (the listener is barely conscious and any sudden changes
+    #      in the bed are more distracting than a constant low bed).
+    duck_db = max(0.0, float(spec.ambient_duck_db))
+    # Round to 4 decimals so the filter graph string is deterministic.
+    duck_attenuation = round(10 ** (-duck_db / 20), 4)
     filter_complex = (
         f"[0:a]volume={spec.voice_volume},aresample=48000,asetpts=PTS-STARTPTS,"
         f"atrim=0:{spec.target_duration:.3f}[voice];"
         f"{bed_label_in}atrim=0:{spec.target_duration:.3f},"
         f"volume={spec.ambient_volume},aresample=48000[bed];"
-        f"[bed][voice]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=1500:"
-        f"makeup=1[ducked];"
-        f"[voice][ducked]amix=inputs=2:duration=first:dropout_transition=0,"
+        f"[bed]volume={duck_attenuation}[bed_attenuated];"
+        f"[voice][bed_attenuated]amix=inputs=2:duration=first:dropout_transition=0,"
         f"alimiter=limit=0.95,aresample=48000[aout]"
     )
 

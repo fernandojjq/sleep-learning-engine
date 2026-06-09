@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sleep_learning_engine"
-version = "1.0.2"
+version = "1.0.3"
 description = "Sleep learning video studio. Turns text prompts into multi-hour, sleep-optimized MP4s with a built-in dark GUI. Provider-agnostic, runs free or local."
 readme = "README.md"
 requires-python = ">=3.11"
