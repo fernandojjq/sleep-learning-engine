@@ -293,3 +293,69 @@ def test_cell5_glob_picks_newest_by_mtime(tmp_path):
         f"Expected the newest render (demo-2.mp4) to be picked, got "
         f"{new_matches[0]}. The cell 5 fix is broken."
     )
+
+
+# ---------------------------------------------------------------------------
+# resolve_paths() ambient fallback
+# ---------------------------------------------------------------------------
+# The 97 ambient tracks ship inside the installed package (under
+# src/sleep_learning_engine/assets/ambient/). Cloud notebook setup
+# cells copy them to the work dir; the local CLI uses them via
+# importlib.resources when the repo-root assets/ambient/ is empty.
+# This test pins both directions of the fallback.
+
+
+def test_resolve_paths_ambient_prefers_user_dir_when_populated(tmp_path, monkeypatch):
+    """If the work dir has its own ambient, use it (do not touch the package)."""
+    from sleep_learning_engine.config import resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    user_amb = tmp_path / "assets" / "ambient"
+    user_amb.mkdir(parents=True)
+    (user_amb / "mine.mp3").write_bytes(b"user-track")
+
+    paths = resolve_paths()
+    assert paths.ambient_dir == user_amb
+    assert list(paths.ambient_dir.glob("*.mp3")) == [user_amb / "mine.mp3"]
+
+
+def test_resolve_paths_ambient_falls_back_to_bundled(tmp_path, monkeypatch):
+    """Empty work-dir ambient -> use the package's bundled 97 tracks."""
+    from sleep_learning_engine.config import resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    # Work dir has no ambient at all.
+    paths = resolve_paths()
+    # The fallback should point at the package's bundled dir.
+    assert "sleep_learning_engine" in str(paths.ambient_dir)
+    assert paths.ambient_dir.name == "ambient"
+    # The bundled dir should have all 97 mp3s.
+    mp3s = list(paths.ambient_dir.glob("*.mp3"))
+    assert len(mp3s) == 97, (
+        f"Expected 97 bundled ambient tracks, found {len(mp3s)}. "
+        f"The package_data in pyproject.toml is not including the "
+        f"assets/ambient/*.mp3 glob, or the files are not in the "
+        f"expected location."
+    )
+
+
+def test_resolve_paths_ambient_falls_back_when_user_dir_empty(tmp_path, monkeypatch):
+    """Work-dir ambient dir exists but is empty -> use bundled."""
+    from sleep_learning_engine.config import resolve_paths
+
+    monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
+    monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
+
+    user_amb = tmp_path / "assets" / "ambient"
+    user_amb.mkdir(parents=True)
+    # No mp3s in the user's ambient dir.
+
+    paths = resolve_paths()
+    assert paths.ambient_dir != user_amb, (
+        "Empty user ambient dir should trigger the bundled fallback."
+    )
+    assert "sleep_learning_engine" in str(paths.ambient_dir)

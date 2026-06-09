@@ -13,6 +13,39 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _resolve_ambient_dir(assets_dir: Path) -> Path:
+    """Pick the best ambient library directory.
+
+    Preference order:
+
+    1. ``<project_root>/assets/ambient/`` if it has at least one
+       ``.mp3`` inside. This is the user's working library - a fresh
+       upload, a curated set, anything the user has put there.
+    2. The bundled 97-track library that ships inside the installed
+       wheel, located via ``importlib.resources``. This is the
+       contest bundle that the cloud notebooks' setup cells copy to
+       the work dir; the local CLI uses it directly when the repo
+       root has no ambient.
+    3. The empty ``<project_root>/assets/ambient/`` (the historical
+       path). The mixer will find zero files and the render will
+       ship silent ambient; the user gets a clear log line instead
+       of a crash.
+    """
+    user_dir = assets_dir / "ambient"
+    if user_dir.is_dir() and any(user_dir.glob("*.mp3")):
+        return user_dir
+    try:
+        from importlib.resources import files as _pkg_files
+        bundled = _pkg_files("sleep_learning_engine").joinpath(
+            "assets", "ambient"
+        )
+        if bundled.is_dir() and any(bundled.glob("*.mp3")):
+            return Path(str(bundled))
+    except Exception:
+        pass
+    return user_dir
+
+
 def _project_root() -> Path:
     """Locate the project root.
 
@@ -142,7 +175,13 @@ def resolve_paths(
         root=root,
         src=src,
         assets_dir=assets_dir,
-        ambient_dir=assets_dir / "ambient",
+        # Ambient library: try the project-root assets/ambient/ first
+        # (the user's working library), then fall back to the bundled
+        # 97 tracks that ship inside the installed package. The
+        # bundled copy is what the cloud notebooks' setup cells copy
+        # to the work dir; the fallback here is for the local CLI
+        # when the repo-root assets/ambient/ is empty.
+        ambient_dir=_resolve_ambient_dir(assets_dir),
         visuals_dir=assets_dir / "visuals",
         output_dir=root / "output",
         cache_dir=cache_dir,

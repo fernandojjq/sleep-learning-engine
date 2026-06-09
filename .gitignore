@@ -39,6 +39,13 @@ logs/
 # in the public tree so judges can clone + render without sourcing their
 # own ambient library first. See docs/CONTEST_NOTICE.md for the rationale
 # and risk. Strip after the contest with `scripts/strip_ambient.py`.
+#
+# As of v1.0.2 the 97 bundled tracks also live INSIDE the installed
+# package at src/sleep_learning_engine/assets/ambient/, picked up by
+# the wheel's package_data. The local CLI uses them via the
+# importlib.resources fallback in paths.py. The repo-root
+# assets/ambient/ can be left empty (or repopulated with the user's
+# own personal library) without breaking the render.
 assets/ambient/*
 !assets/ambient/.gitkeep
 !assets/ambient/README.md
