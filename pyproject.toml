@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sleep_learning_engine"
-version = "1.0.1"
+version = "1.0.2"
 description = "Sleep learning video studio. Turns text prompts into multi-hour, sleep-optimized MP4s with a built-in dark GUI. Provider-agnostic, runs free or local."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -100,7 +100,16 @@ where = ["src"]
 include = ["sleep_learning_engine*"]
 
 [tool.setuptools.package-data]
-sleep_learning_engine = ["py.typed", "prompts/*.md"]
+sleep_learning_engine = [
+    "py.typed",
+    "prompts/*.md",
+    # The 97 bundled ambient tracks live inside the package so the
+    # wheel can be reinstalled anywhere (Colab, Kaggle, any clean VM)
+    # and the CLI still finds music. Cloud notebooks copy them to
+    # the work dir on first run; the local CLI also reads from here
+    # as a fallback when the repo-root assets/ambient/ is empty.
+    "assets/ambient/*.mp3",
+]
 
 [tool.ruff]
 line-length = 100
