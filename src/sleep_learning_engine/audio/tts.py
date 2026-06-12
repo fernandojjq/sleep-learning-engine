@@ -107,27 +107,61 @@ class TTSEngine:
             ) from exc
 
         async def _synth_all() -> list[TTSSegment]:
-            communicate = edge_tts.Communicate(
-                text="",
-                voice=self.voice,
-                rate=self.rate,
-                pitch=self.pitch,
-            )
             segments: list[TTSSegment] = []
             for i, text in enumerate(paragraphs):
                 audio_path = out_dir / f"seg-{i:04d}.mp3"
-                comm = edge_tts.Communicate(
-                    text=text,
-                    voice=self.voice,
-                    rate=self.rate,
-                    pitch=self.pitch,
-                )
-                await comm.save(str(audio_path))
-                if not audio_path.exists() or audio_path.stat().st_size == 0:
-                    raise SleeplensError(f"edge-tts produced no audio for segment {i}.")
-                duration = _probe_duration(audio_path, self.ffmpeg_bin)
+                
+                # Retry logic for network drops or rate-limiting
+                max_retries = 5
+                retry_delay = 1.0
+                success = False
+                duration = 0.0
+
+                for attempt in range(max_retries):
+                    try:
+                        comm = edge_tts.Communicate(
+                            text=text,
+                            voice=self.voice,
+                            rate=self.rate,
+                            pitch=self.pitch,
+                        )
+                        await comm.save(str(audio_path))
+                        
+                        # Verify physical file size is sane
+                        if not audio_path.exists() or audio_path.stat().st_size < 1000:
+                            raise SleeplensError("File missing or too small (possible download truncation).")
+                        
+                        # Verify duration can be read and is not near-zero
+                        duration = _probe_duration(audio_path, self.ffmpeg_bin)
+                        if duration <= 0.1:
+                            raise SleeplensError("Zero or invalid audio duration detected.")
+                        
+                        success = True
+                        break
+                    except Exception as e:
+                        log.warning(
+                            "Attempt {}/{} failed for segment {}: {}. Retrying in {:.1f}s...",
+                            attempt + 1, max_retries, i, str(e) or type(e).__name__, retry_delay
+                        )
+                        if audio_path.exists():
+                            try:
+                                audio_path.unlink()
+                            except Exception:
+                                pass
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                
+                if not success:
+                    raise SleeplensError(
+                        f"edge-tts failed to produce a valid audio segment {i} after {max_retries} attempts."
+                    )
+                
                 log.info("Rendered TTS segment {} ({:.1f}s)", i, duration)
                 segments.append(TTSSegment(index=i, text=text, audio_path=audio_path, duration=duration))
+                
+                # Tiny pause to avoid flooding the Microsoft Edge-TTS server
+                await asyncio.sleep(0.3)
+                
             return segments
 
         try:

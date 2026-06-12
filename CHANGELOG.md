@@ -5,6 +5,12 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.9 (2026-06-12)
+
+### Fixed
+- **Robust TTS Downloads**: Added automatic retries with exponential backoff (up to 5 attempts) and request throttling (0.3s sleep) in [tts.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/audio/tts.py). This prevents Microsoft Edge-TTS WebSocket disconnects or transient rate limits from truncating long video renders.
+- **Audio Integrity Verification**: Added file size and duration checks for each downloaded segment. If a segment is incomplete (truncated or corrupt), it is unlinked and automatically re-downloaded to ensure the concatenated `voice.mp3` does not stop mid-sentence.
+
 ## 1.0.1 (2026-06-12)
 
 ### Fixed
