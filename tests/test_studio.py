@@ -264,3 +264,19 @@ def test_orchestrator_with_prewritten_script(tmp_path_factory: pytest.TempPathFa
     assert result.output_path.exists()
     assert result.output_path.stat().st_size > 0
     assert result.timing.total_seconds > 0
+
+
+def test_chunk_text() -> None:
+    from sleep_learning_engine.audio.tts import _chunk_text
+
+    # Simple short text shouldn't be chunked
+    assert _chunk_text("Hello world", max_chars=100) == ["Hello world"]
+
+    # Split at sentence boundary
+    text = "Hello world. This is a sentence. And another one."
+    chunks = _chunk_text(text, max_chars=25)
+    assert len(chunks) == 3
+    assert chunks[0] == "Hello world."
+    assert chunks[1] == "This is a sentence."
+    assert chunks[2] == "And another one."
+

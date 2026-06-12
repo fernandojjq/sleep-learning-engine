@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import shutil
 import subprocess
 import tempfile
@@ -68,6 +69,12 @@ class TTSEngine:
         paragraphs_list = [p.strip() for p in paragraphs if p and p.strip()]
         if not paragraphs_list:
             raise SleeplensError("No paragraphs to render.")
+
+        # Chunk any paragraph that exceeds a safe character limit for edge-tts
+        chunked_paragraphs = []
+        for p in paragraphs_list:
+            chunked_paragraphs.extend(_chunk_text(p))
+        paragraphs_list = chunked_paragraphs
 
         cache_dir.mkdir(parents=True, exist_ok=True)
         segments_dir = cache_dir / "tts"
@@ -224,3 +231,52 @@ def _probe_duration(audio_path: Path, ffmpeg_bin: Path | None) -> float:
 
 # Silence the unused-name lint; keep the helper for tooling/tests.
 _ = tempfile.gettempdir
+
+
+def _chunk_text(text: str, max_chars: int = 3000) -> list[str]:
+    """Split a long text block into smaller chunks, trying to split at sentence boundaries."""
+    if len(text) <= max_chars:
+        return [text]
+
+    # Split by sentence endings (. ? ! followed by whitespace)
+    sentences = re.split(r'(?<=[.?!])\s+', text)
+    chunks = []
+    current_chunk = []
+    current_len = 0
+
+    for sentence in sentences:
+        if current_len + len(sentence) + 1 > max_chars:
+            if current_chunk:
+                chunks.append(" ".join(current_chunk))
+            current_chunk = [sentence]
+            current_len = len(sentence)
+        else:
+            current_chunk.append(sentence)
+            current_len += len(sentence) + 1
+
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+
+    # If any single sentence is still larger than max_chars, split it by words
+    final_chunks = []
+    for chunk in chunks:
+        if len(chunk) <= max_chars:
+            final_chunks.append(chunk)
+        else:
+            words = chunk.split()
+            sub_chunk = []
+            sub_len = 0
+            for word in words:
+                if sub_len + len(word) + 1 > max_chars:
+                    if sub_chunk:
+                        final_chunks.append(" ".join(sub_chunk))
+                    sub_chunk = [word]
+                    sub_len = len(word)
+                else:
+                    sub_chunk.append(word)
+                    sub_len += len(word) + 1
+            if sub_chunk:
+                final_chunks.append(" ".join(sub_chunk))
+
+    return final_chunks
+

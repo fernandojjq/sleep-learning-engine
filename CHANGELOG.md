@@ -5,6 +5,12 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.1 (2026-06-12)
+
+### Fixed
+- **Fixed Long-Render Cutoff Bug**: Automatic paragraph chunking in [tts.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/audio/tts.py). Long scripts with paragraphs exceeding 3000 characters (e.g., scripts formatted without double newlines) are now automatically split at sentence boundaries before being sent to the Edge-TTS API. This prevents connection timeouts and truncated audio files from the Microsoft translation server, ensuring multi-hour renders finish completely without cutting off mid-word.
+- **Added test for text chunker**: Added `test_chunk_text` to [test_studio.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/tests/test_studio.py) to verify that long prose is split correctly at sentence endings.
+
 ## 1.0.0 (2026-06-08) - Minimax contest release
 
 This is the production-stable release submitted to the **Minimax contest**.

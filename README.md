@@ -214,10 +214,11 @@ activates the project venv, and runs the command. No need to manually
 - **NVIDIA NIM 401 / 403.** Your key is missing or expired. Re-paste it
   in the GUI Provider tab or in `.env`. The free tier allows 40 RPM,
   which is more than enough for a full script.
-- **Edge-TTS fails to connect.** Edge-TTS reaches Microsoft over
+- **Edge-TTS fails to connect or cuts off.** Edge-TTS reaches Microsoft over
   WebSocket. If you are behind a strict firewall, switch the TTS
   backend to `piper` (offline) or supply your own pre-rendered voice
-  track.
+  track. *Note: Since v1.0.1, the engine automatically chunks paragraphs
+  exceeding 3000 characters to prevent connection drops on long scripts.*
 - **PyTorch / CUDA optional extras.** If you want GPU text generation
   via `uv`, install the optional group with `uv pip install torch --extra-index-url https://download.pytorch.org/whl/cu121`
   inside the active venv.
