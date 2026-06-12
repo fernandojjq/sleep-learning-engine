@@ -14,35 +14,28 @@ from pathlib import Path
 
 
 def _resolve_ambient_dir(assets_dir: Path) -> Path:
-    """Pick the best ambient library directory.
+    """Pick the ambient library directory.
 
-    Preference order:
+    The user is the source of all ambient music in this project - we
+    do not bundle any tracks. Resolution order:
 
     1. ``<project_root>/assets/ambient/`` if it has at least one
        ``.mp3`` inside. This is the user's working library - a fresh
        upload, a curated set, anything the user has put there.
-    2. The bundled 97-track library that ships inside the installed
-       wheel, located via ``importlib.resources``. This is the
-       contest bundle that the cloud notebooks' setup cells copy to
-       the work dir; the local CLI uses it directly when the repo
-       root has no ambient.
-    3. The empty ``<project_root>/assets/ambient/`` (the historical
+    2. The empty ``<project_root>/assets/ambient/`` (the historical
        path). The mixer will find zero files and the render will
        ship silent ambient; the user gets a clear log line instead
-       of a crash.
+       of a crash. The user is expected to bring their own tracks.
+
+    The bundled-package fallback was removed in v1.0.9: each user
+    is responsible for the licensing of their own ambient music.
+    Recommended generators: Minimax Music 2.6, Udio, Suno, Stable
+    Audio, or any other source. The pipeline does not care where
+    the music came from - it just needs ``.mp3`` files in a folder.
     """
     user_dir = assets_dir / "ambient"
     if user_dir.is_dir() and any(user_dir.glob("*.mp3")):
         return user_dir
-    try:
-        from importlib.resources import files as _pkg_files
-        bundled = _pkg_files("sleep_learning_engine").joinpath(
-            "assets", "ambient"
-        )
-        if bundled.is_dir() and any(bundled.glob("*.mp3")):
-            return Path(str(bundled))
-    except Exception:
-        pass
     return user_dir
 
 
@@ -175,12 +168,9 @@ def resolve_paths(
         root=root,
         src=src,
         assets_dir=assets_dir,
-        # Ambient library: try the project-root assets/ambient/ first
-        # (the user's working library), then fall back to the bundled
-        # 97 tracks that ship inside the installed package. The
-        # bundled copy is what the cloud notebooks' setup cells copy
-        # to the work dir; the fallback here is for the local CLI
-        # when the repo-root assets/ambient/ is empty.
+        # Ambient library: ONLY the project-root assets/ambient/ is
+        # consulted. The user brings their own .mp3 files; the package
+        # ships with zero bundled ambient. See _resolve_ambient_dir.
         ambient_dir=_resolve_ambient_dir(assets_dir),
         visuals_dir=assets_dir / "visuals",
         output_dir=root / "output",

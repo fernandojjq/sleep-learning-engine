@@ -1,0 +1,5 @@
+file 'D:/proyectos/Proyectos Github/sleep_learning_engine/cache/smoke_ambient/cache/tts/seg-0000.mp3'
+file 'D:/proyectos/Proyectos Github/sleep_learning_engine/cache/smoke_ambient/cache/tts/seg-0001.mp3'
+file 'D:/proyectos/Proyectos Github/sleep_learning_engine/cache/smoke_ambient/cache/tts/seg-0002.mp3'
+file 'D:/proyectos/Proyectos Github/sleep_learning_engine/cache/smoke_ambient/cache/tts/seg-0003.mp3'
+file 'D:/proyectos/Proyectos Github/sleep_learning_engine/cache/smoke_ambient/cache/tts/seg-0004.mp3'

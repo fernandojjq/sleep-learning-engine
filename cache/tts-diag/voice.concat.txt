@@ -1,0 +1,3 @@
+file 'D:/proyectos/Proyectos Github/sleeplens/cache/tts-diag/tts/seg-0000.mp3'
+file 'D:/proyectos/Proyectos Github/sleeplens/cache/tts-diag/tts/seg-0001.mp3'
+file 'D:/proyectos/Proyectos Github/sleeplens/cache/tts-diag/tts/seg-0002.mp3'

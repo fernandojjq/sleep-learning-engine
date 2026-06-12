@@ -1,0 +1,14 @@
+Update CHANGELOG with the post-rename fixes
+
+The Unreleased section covered the rename + normalize +
+playlist + Colab notebook, but the four subsequent fixes
+landed without a CHANGELOG entry:
+- 3 cloud-notebook issues (LD_LIBRARY_PATH, streaming,
+  VRAM note)
+- per-session upload default for drive notebook
+- NVENC canary false negative on real T4 hardware
+- drive notebook as a new file
+
+Reorganized the Unreleased section to group Fixed entries
+at the end and added the missing entries with rationale for
+each. No code or test changes; docs-only.

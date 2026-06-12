@@ -184,8 +184,19 @@ def run_render(
     if settings.ambient_mode is not AmbientMode.DISABLED:
         library = scan_ambient_library(paths.ambient_dir)
         if not library:
-            notes.append(
-                f"No ambient tracks found in {paths.ambient_dir}. Drop royalty-free loops into the folder and re-render."
+            raise SleeplensError(
+                f"No ambient tracks found in {paths.ambient_dir}.\n"
+                f"\n"
+                f"This project does not bundle any ambient music. You must supply your own .mp3 files\n"
+                f"(generate with Minimax Music 2.6, Udio, Suno, Stable Audio, or use any royalty-free\n"
+                f"loops you have a license for) and place them in:\n"
+                f"  {paths.ambient_dir}\n"
+                f"\n"
+                f"After dropping your .mp3 files into that folder, re-run the render. The pipeline does\n"
+                f"not care which tool generated the music - it just needs .mp3 files in this directory.\n"
+                f"\n"
+                f"If you want to render voice-only without any ambient bed, set\n"
+                f"ambient_mode = 'disabled' in your .sleeplens.toml or use --ambient-mode disabled."
             )
         else:
             playlist = build_ambient_playlist(

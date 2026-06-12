@@ -1,66 +1,55 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+# Local user-supplied assets - never commit media files
+# Each user brings their own ambient music; we do not distribute any.
+
+# Local ambient track directories (user puts their own .mp3 here)
+assets/ambient/*.mp3
+assets/ambient/_originals/
+assets/ambient/_normalized/
+
+# Local package fallback (kept for the local CLI workflow)
+src/sleep_learning_engine/assets/ambient/*.mp3
+
+# Build artifacts and dist files
 build/
 dist/
 *.egg-info/
-.eggs/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+*.whl
 
-# Virtual env (when copied outside the repo)
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.cache/
+
+# Virtual envs
 .venv/
 venv/
 
-# Studio runtime artefacts
-cache/
-output/
-logs/
-.sleeplens.toml
-*.mp4
-*.mp3
-*.m4a
-*.flac
-*.png
-*.jpg
-*.jpeg
-!docs/*.png
-!docs/*.jpg
-!docs/*.jpeg
-
-# Ambient beds: generated externally (Minimax Music 2.6), not committed
-# by default. During the contest submission window the .mp3s ARE bundled
-# in the public tree so judges can clone + render without sourcing their
-# own ambient library first. See docs/CONTEST_NOTICE.md for the rationale
-# and risk. Strip after the contest with `scripts/strip_ambient.py`.
-#
-# As of v1.0.2 the 97 bundled tracks also live INSIDE the installed
-# package at src/sleep_learning_engine/assets/ambient/, picked up by
-# the wheel's package_data. The local CLI uses them via the
-# importlib.resources fallback in paths.py. The repo-root
-# assets/ambient/ can be left empty (or repopulated with the user's
-# own personal library) without breaking the render.
-assets/ambient/*
-!assets/ambient/.gitkeep
-!assets/ambient/README.md
-!assets/ambient/*.mp3
-!assets/ambient/*.ogg
-!assets/ambient/*.wav
-assets/ambient/.loudnorm-backup/
-assets/ambient/.loudnorm-backup/**
-
-# Editor / OS
+# IDE / OS
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
 
-# Local secrets
-.env
-.env.local
+# User-specific config (TOML may contain personal paths and credentials)
+.sleeplens.toml
+.sleep_learning_engine.toml
+*.local.toml
+
+# Test artifacts
+output/
+.cache/
+*.log
+*.tmp
+
+# Cached ffmpeg binaries
+cache/ffmpeg.exe
+cache/ffprobe.exe
+
+# Loudness audit cache
+cache/_loudness_audit.json
+
+# Smoke / test fixture outputs
+cache/_*.py
+!cache/__init__.py
