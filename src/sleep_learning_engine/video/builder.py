@@ -259,25 +259,32 @@ def _run_encode(cmd: list[str], total_seconds: float) -> subprocess.CompletedPro
     total = max(0.001, float(total_seconds))
     last_bucket = -1
     assert proc.stdout is not None
-    for line in proc.stdout:
-        line = line.strip()
-        if line.startswith(("out_time_us=", "out_time_ms=")):
-            try:
-                raw = int(line.split("=", 1)[1])
-            except ValueError:
-                continue
-            secs = raw / (1_000_000 if "us=" in line else 1_000)
-            pct = min(100, int(secs / total * 100))
-            bucket = pct - (pct % 10)
-            if bucket > last_bucket:
-                last_bucket = bucket
-                log.info("Encoding: {}% ({:.0f}/{:.0f}s)", bucket, secs, total)
-        elif line == "progress=end" and last_bucket < 100:
-            last_bucket = 100
-            log.info("Encoding: 100% ({:.0f}/{:.0f}s)", total, total)
-
-    proc.wait()
-    th.join(timeout=2)
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if line.startswith(("out_time_us=", "out_time_ms=")):
+                try:
+                    raw = int(line.split("=", 1)[1])
+                except ValueError:
+                    continue
+                secs = raw / (1_000_000 if "us=" in line else 1_000)
+                pct = min(100, int(secs / total * 100))
+                bucket = pct - (pct % 10)
+                if bucket > last_bucket:
+                    last_bucket = bucket
+                    log.info("Encoding: {}% ({:.0f}/{:.0f}s)", bucket, secs, total)
+            elif line == "progress=end" and last_bucket < 100:
+                last_bucket = 100
+                log.info("Encoding: 100% ({:.0f}/{:.0f}s)", total, total)
+    finally:
+        # CRITICAL: wait for the stderr drain thread to fully consume
+        # the stderr pipe BEFORE we let the process exit. If we don't,
+        # ffmpeg blocks on a full stderr pipe and the whole render hangs
+        # at 100% forever. The previous version had `th.join(timeout=2)`
+        # which was a guaranteed deadlock on a busy ffmpeg that emits
+        # any warning to stderr after the progress=end marker.
+        proc.wait()
+        th.join()  # no timeout: the pipe is bounded by ffmpeg's lifetime
     return subprocess.CompletedProcess(
         cmd, proc.returncode, stdout="", stderr="".join(err)
     )
