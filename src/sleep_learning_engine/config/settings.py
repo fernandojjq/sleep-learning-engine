@@ -179,9 +179,6 @@ class AppSettings:
 
     # Render
     output_preset: OutputPreset = OutputPreset.SLEEP_720P
-    progress_bar_color: str = "#00FF00"
-    progress_bar_height: int = 6
-    progress_bar_position: str = "bottom"
     hardware_accel: str = "auto"  # auto|nvenc|qsv|amf|libx264
     render_threads: int = 0  # 0 = auto
 
@@ -286,9 +283,6 @@ def save_settings(path: Path, settings: AppSettings) -> None:
         "ambient_duck_db": settings.ambient_duck_db,
         "voice_volume": settings.voice_volume,
         "output_preset": settings.output_preset.value,
-        "progress_bar_color": settings.progress_bar_color,
-        "progress_bar_height": settings.progress_bar_height,
-        "progress_bar_position": settings.progress_bar_position,
         "hardware_accel": settings.hardware_accel,
         "render_threads": settings.render_threads,
         "theme": settings.theme,

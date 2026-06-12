@@ -1055,45 +1055,23 @@ class StudioApp(ctk.CTk):
 
         size_row = ctk.CTkFrame(parent, fg_color="transparent")
         size_row.grid(row=2, column=0, columnspan=2, padx=20, pady=4, sticky="ew")
-        size_row.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        size_row.grid_columnconfigure((0, 1), weight=1)
         self.fps_var = tk.StringVar(value="24")
         self.threads_var = tk.StringVar(value="0")
-        self.bar_height_var = tk.StringVar(value="6")
-        self.bar_position_var = tk.StringVar(value="bottom")
         ctk.CTkEntry(size_row, textvariable=self.fps_var, placeholder_text="fps").grid(
             row=0, column=0, padx=8, pady=4, sticky="ew"
         )
         ctk.CTkEntry(size_row, textvariable=self.threads_var, placeholder_text="threads (0=auto)").grid(
             row=0, column=1, padx=8, pady=4, sticky="ew"
         )
-        ctk.CTkEntry(size_row, textvariable=self.bar_height_var, placeholder_text="bar height (px)").grid(
-            row=0, column=2, padx=8, pady=4, sticky="ew"
-        )
-        ctk.CTkOptionMenu(
-            size_row,
-            values=["top", "bottom"],
-            variable=self.bar_position_var,
-            fg_color=PALETTE["panel_alt"],
-            button_color=PALETTE["accent"],
-            text_color=PALETTE["text"],
-        ).grid(row=0, column=3, padx=8, pady=4, sticky="ew")
 
         ctk.CTkLabel(
             parent,
-            text="The green progress bar (#00FF00) advances frame-by-frame so it always matches the timeline.",
+            text="The encode runs in the background. The log below shows progress; the file appears in the output dir when it finishes.",
             text_color=PALETTE["muted"],
             wraplength=720,
             justify="left",
         ).grid(row=3, column=0, columnspan=2, padx=20, pady=12, sticky="w")
-
-        self.progress = ctk.CTkProgressBar(
-            parent,
-            fg_color=PALETTE["panel_alt"],
-            progress_color=PALETTE["progress"],
-            height=10,
-        )
-        self.progress.set(0)
-        self.progress.grid(row=4, column=0, columnspan=2, padx=20, pady=(0, 12), sticky="ew")
 
         self.log_box = ctk.CTkTextbox(
             parent,
@@ -1162,8 +1140,6 @@ class StudioApp(ctk.CTk):
         self.hw_var.set(s.hardware_accel)
         self.fps_var.set(str(s.video_fps))
         self.threads_var.set(str(s.render_threads))
-        self.bar_height_var.set(str(s.progress_bar_height))
-        self.bar_position_var.set(s.progress_bar_position)
 
     def _collect_settings(self) -> AppSettings:
         s = AppSettings(**self.settings.__dict__)
@@ -1188,7 +1164,6 @@ class StudioApp(ctk.CTk):
             s.ambient_duck_db = float(self.ambient_duck_var.get() or "12")
             s.video_fps = int(self.fps_var.get() or "24")
             s.render_threads = int(self.threads_var.get() or "0")
-            s.progress_bar_height = int(self.bar_height_var.get() or "6")
         except ValueError as exc:
             raise SleeplensError(f"Invalid number in form: {exc}") from exc
         s.script_topic = self.topic_text.get("1.0", "end").strip()
@@ -1208,7 +1183,6 @@ class StudioApp(ctk.CTk):
         s.ambient_mode = AmbientMode(self.ambient_mode_var.get())
         s.output_preset = OutputPreset(self.preset_var.get())
         s.hardware_accel = self.hw_var.get()
-        s.progress_bar_position = self.bar_position_var.get()
         # System prompt: empty means use the built-in default.
         s.system_prompt = self.system_prompt_text.get("1.0", "end").strip()
         return s
@@ -1477,7 +1451,6 @@ class StudioApp(ctk.CTk):
         self._cancel_flag.clear()
         self._set_action_buttons(running=True, allow_cancel=True)
         self.status_label.configure(text="Generating script…", text_color=PALETTE["accent_alt"])
-        self.progress.set(0)
         self._append_log("Starting script generation…")
 
         thread = threading.Thread(
@@ -1582,7 +1555,6 @@ class StudioApp(ctk.CTk):
             self._chunk_pump_after_id = None
 
     def _on_script_done(self, path: Path, script) -> None:
-        self.progress.set(0.25)
         self._append_log(
             f"Script ready: {len(script.paragraphs)} paragraphs, {script.word_count} words -> {path}"
         )
@@ -1635,7 +1607,6 @@ class StudioApp(ctk.CTk):
         self._cancel_flag.clear()
         self._set_action_buttons(running=True, allow_cancel=True)
         self.status_label.configure(text="Rendering full video…", text_color=PALETTE["accent_alt"])
-        self.progress.set(0)
         self._append_log("Starting render…")
 
         thread = threading.Thread(target=self._run_job, args=(settings,), daemon=True)
@@ -1692,25 +1663,15 @@ class StudioApp(ctk.CTk):
         self.after(0, lambda: self._apply_event(event))
 
     def _apply_event(self, event: RenderEvent) -> None:
+        # The green progress bar is gone. The log box and the stage
+        # label carry all the visibility the user needs: each pipeline
+        # event appends a line, and the stage label tells the user
+        # which phase the render is in.
         self._append_log(f"[{event.stage.value}] {event.message}")
-        stage_weights = {
-            RenderStage.SCRIPT: 0.10,
-            RenderStage.VOICE: 0.35,
-            RenderStage.TIMING: 0.45,
-            RenderStage.AMBIENT: 0.50,
-            RenderStage.MIX: 0.60,
-            RenderStage.VISUAL: 0.70,
-            RenderStage.ENCODE: 0.95,
-            RenderStage.DONE: 1.0,
-        }
-        self.progress.set(stage_weights.get(event.stage, self.progress.get()))
-        # Show the current pipeline stage in the sidebar so the user
-        # always knows what is happening.
-        self.stage_label.configure(text=f"Stage: {event.stage.value} — {event.message}")
+        self.stage_label.configure(text=f"Stage: {event.stage.value} - {event.message}")
         self.status_label.configure(text="", text_color=PALETTE["muted"])
 
     def _on_job_done(self, result) -> None:
-        self.progress.set(1.0)
         self._append_log(f"Done. Saved to {result.output_path}.")
         self.status_label.configure(
             text=f"Done. Saved to {result.output_path.name} ({result.duration_seconds / 60:.1f} min).",

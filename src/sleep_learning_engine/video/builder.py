@@ -28,9 +28,6 @@ from .timing import TimingPlan
 
 log = get_logger()
 
-PROGRESS_BAR_DEFAULT_COLOR = "#00FF00"
-HEX_COLOR = re.compile(r"^#?([0-9A-Fa-f]{6})$")
-
 
 @dataclass(frozen=True)
 class VideoSpec:
@@ -42,9 +39,6 @@ class VideoSpec:
     output_path: Path
     timing: TimingPlan
     ffmpeg_bin: Path
-    progress_color: str = PROGRESS_BAR_DEFAULT_COLOR
-    progress_height: int = 6
-    progress_position: str = "bottom"  # "top" or "bottom".
     hardware_accel: str = "auto"  # "auto" | "nvenc" | "qsv" | "amf" | "libx264"
     render_threads: int = 0
     preset: OutputPreset = OutputPreset.SLEEP_720P
@@ -157,74 +151,14 @@ def pick_hardware(choice: str, ffmpeg_bin: Path) -> HardwareChoice:
     return libx264
 
 
-# ------------------------------------------------------------- progress bar
-
-
-def _normalise_color(color: str) -> str:
-    match = HEX_COLOR.match(color.strip())
-    if not match:
-        log.warning("Invalid progress bar color '{}'. Using #00FF00.", color)
-        return PROGRESS_BAR_DEFAULT_COLOR
-    return f"0x{match.group(1).upper()}"
-
-
-def _progress_filter(
-    *,
-    bg_vf: str,
-    width: int,
-    height: int,
-    bar_height: int,
-    position: str,
-    color_hex: str,
-    total_seconds: float,
-    fps: int,
-) -> str:
-    """Compose the full video filtergraph: background + a time-synced bar.
-
-    The progress bar is painted with ``geq`` on a *tiny fixed-size strip*
-    (``width`` x ``bar_height``), then overlaid onto the background.
-
-    The previous version ran ``geq`` per-pixel over the ENTIRE 720p/1080p
-    frame for every one of ~10k frames. ``geq`` evaluates its expression once
-    per output pixel, single-threaded, on the CPU (NVENC never touches the
-    filter graph), so a 7-minute 1080p render spent ~25-40 min just in the
-    progress filter and looked completely frozen. Restricting geq to the
-    ~1280x6 bar strip is ~30x faster and pixel-identical on screen.
-
-    geq exposes ``T`` (timestamp) and per-pixel ``X`` / ``W``; the strip is
-    the fill colour where ``X < W*T/total`` and a dark track otherwise.
-    (drawbox cannot do this: its x/y/w/h expressions only expose geometric
-    constants - no time or frame index - which is the whole reason geq is
-    needed for an animated width.)
-    """
-    y_top = (height - bar_height - 4) if position == "bottom" else 4
-    dur = max(0.001, float(total_seconds))
-    h = color_hex.lower().lstrip("#")
-    if h.startswith("0x"):
-        h = h[2:]
-    h = h[-6:].rjust(6, "0")
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    thr = f"W*T/{dur:.3f}"  # progress fraction, in pixels, at time T
-    strip = (
-        f"color=c=black:s={width}x{bar_height}:r={fps}:d={dur:.3f},format=gbrp,"
-        f"geq=r='if(lt(X\\,{thr})\\,{r}\\,30)':"
-        f"g='if(lt(X\\,{thr})\\,{g}\\,30)':"
-        f"b='if(lt(X\\,{thr})\\,{b}\\,30)'[bar]"
-    )
-    return (
-        f"{strip};"
-        f"[0:v]{bg_vf}[bg];"
-        f"[bg][bar]overlay=x=0:y={y_top}:shortest=1,format=yuv420p[v]"
-    )
-
-
-def _hex_to_rgb(color_hex: str) -> tuple[int, int, int]:
-    h = color_hex.lstrip("#")
-    if len(h) == 6:
-        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    if len(h) == 8:
-        return int(h[2:4], 16), int(h[4:6], 16), int(h[6:8], 16)
-    return 0, 255, 0  # default to #00FF00
+# ------------------------------------------------------------- progress bar (removed)
+# The previous version painted a green time-synced bar over the video
+# using geq on a 1x6 strip overlaid on the background. The user asked
+# us to drop it ("the progress bar is a detail, I just want the file")
+# so the build pipeline no longer has to do the strip composition, the
+# overlay, and the 30x speedup dance that came with it. The video
+# output is now identical to the background, which is what the user
+# wanted.
 
 
 # ------------------------------------------------------------- main builder
@@ -257,9 +191,10 @@ def _run_encode(cmd: list[str], total_seconds: float) -> subprocess.CompletedPro
     - ``timeout=total_seconds * 2 + 300`` so a hung ffmpeg surfaces
       as ``TimeoutExpired`` instead of an invisible cell hang.
     - No live percentage. Two log lines: one at the start, one at
-      the end. If the user wants a progress bar in the GUI, that
-      lives in ``run_with_progress`` below, which is GUI-only and
-      the user has explicitly opted into.
+      the end. The user has explicitly asked for the file, not a
+      progress bar. Status text in the GUI (stage labels) is
+      driven by RenderEvent callbacks from the pipeline, not by
+      parsing ffmpeg's -progress stream.
     """
     timeout = max(60, int(total_seconds * 2 + 300))
     log.info("Encoding: starting (estimated {:.0f}s, hard timeout {}s)", total_seconds, timeout)
@@ -284,26 +219,15 @@ def build(spec: VideoSpec) -> Path:
 
     spec.output_path.parent.mkdir(parents=True, exist_ok=True)
     width, height = _resolve_dimensions(spec)
-    color = _normalise_color(spec.progress_color)
+    duration = spec.timing.total_seconds
 
-    # Build the background stream.
+    # Simple video filter: scale the background to the preset dimensions.
+    # The user's content is just a still image (or looping video) over the
+    # audio track. No compositing, no overlay, no progress strip.
     if spec.visual_kind == "image":
-        bg_input = _build_image_stream(spec.visual_path, spec.timing.total_seconds, width, height)
+        bg_vf = _image_filter(width, height, duration)
     else:
-        bg_input = _build_video_stream(spec.visual_path, spec.timing.total_seconds, width, height)
-
-    filter_complex = _progress_filter(
-        bg_vf=bg_input["vf"],
-        width=width,
-        height=height,
-        bar_height=spec.progress_height,
-        position=spec.progress_position,
-        color_hex=color,
-        total_seconds=spec.timing.total_seconds,
-        fps=spec.timing.fps,
-    )
-    if "af" in bg_input:
-        filter_complex += f";{bg_input['af']}[a]"
+        bg_vf = _video_filter(width, height, duration)
 
     hw = pick_hardware(spec.hardware_accel, spec.ffmpeg_bin)
     cmd: list[str] = [
@@ -312,40 +236,25 @@ def build(spec: VideoSpec) -> Path:
         "-hide_banner",
         "-loglevel",
         "error",
-        "-progress",
-        "-",
     ]
     if spec.render_threads > 0:
         cmd += ["-threads", str(spec.render_threads)]
-    cmd += ["-i", str(spec.visual_path if spec.visual_kind == "image" else spec.visual_path)]
+    cmd += ["-i", str(spec.visual_path)]
     cmd += ["-i", str(spec.mixed_audio_path)]
 
     cmd += [
         "-filter_complex",
-        filter_complex,
-        "-map",
-        "[v]",
-    ]
-    if "af" in bg_input:
-        cmd += ["-map", "[a]"]
-    else:
-        cmd += ["-map", "1:a"]
-    cmd += [
-        "-c:v",
-        hw.encoder,
+        f"[0:v]{bg_vf},format=yuv420p[v]",
+        "-map", "[v]",
+        "-map", "1:a",
+        "-c:v", hw.encoder,
         *hw.extra_flags,
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        str(spec.timing.fps),
-        "-t",
-        f"{spec.timing.total_seconds:.3f}",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "160k",
-        "-movflags",
-        "+faststart",
+        "-pix_fmt", "yuv420p",
+        "-r", str(spec.timing.fps),
+        "-t", f"{duration:.3f}",
+        "-c:a", "aac",
+        "-b:a", "160k",
+        "-movflags", "+faststart",
         "-shortest",
         str(spec.output_path),
     ]
@@ -399,69 +308,34 @@ def _resolve_dimensions(spec: VideoSpec) -> tuple[int, int]:
 # ------------------------------------------------------ background streams
 
 
-def _build_image_stream(image: Path, duration: float, width: int, height: int) -> dict[str, str]:
-    return {
-        "vf": (
-            f"loop=loop=-1:size=1:start=0,"
-            f"trim=duration={duration:.3f},"
-            f"scale={width}:{height}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},"
-            f"setsar=1,fps=24"
-        ),
-    }
-
-
-def _build_video_stream(video: Path, duration: float, width: int, height: int) -> dict[str, str]:
-    return {
-        "vf": (
-            f"loop=loop=-1:size=1:start=0,"
-            f"trim=duration={duration:.3f},"
-            f"scale={width}:{height}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},"
-            f"setsar=1,fps=24"
-        ),
-    }
-
-
-# ----------------------------------------------------- progress reporter
-
-
-def run_with_progress(cmd: list[str], on_progress) -> subprocess.CompletedProcess[str]:
-    """Run a subprocess that emits ``-progress -`` key=value pairs.
-
-    Each line is forwarded to ``on_progress(time_us, speed)`` so the GUI can
-    paint a live status indicator.
-    """
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,
+def _image_filter(width: int, height: int, duration: float) -> str:
+    """Filter for a still image stretched to fill the target dimensions."""
+    return (
+        f"loop=loop=-1:size=1:start=0,"
+        f"trim=duration={duration:.3f},"
+        f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+        f"crop={width}:{height},"
+        f"setsar=1,fps=24"
     )
-    time_us = 0
-    speed = 0.0
-    assert process.stdout is not None
-    for line in process.stdout:
-        line = line.strip()
-        if "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        if key == "out_time_us":
-            try:
-                time_us = int(value)
-            except ValueError:
-                pass
-        elif key == "speed":
-            try:
-                speed = float(value.rstrip("x"))
-            except ValueError:
-                pass
-        on_progress(time_us / 1_000_000, speed)
-    stderr = process.stderr.read() if process.stderr else ""
-    process.wait()
-    return subprocess.CompletedProcess(cmd, process.returncode, stdout="", stderr=stderr)
 
 
-# silence the unused import warnings for json/re (kept for future extensions).
-_ = json, re
+def _video_filter(width: int, height: int, duration: float) -> str:
+    """Filter for a looping video background that fills the target dimensions."""
+    return (
+        f"loop=loop=-1:size=1:start=0,"
+        f"trim=duration={duration:.3f},"
+        f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+        f"crop={width}:{height},"
+        f"setsar=1,fps=24"
+    )
+
+
+# ----------------------------------------------------- progress reporter (removed)
+# The GUI used to call ``run_with_progress(cmd, on_progress=...)`` to
+# paint a live progress widget while ffmpeg ran. That function used
+# Popen + a for-line-in-stdout loop, which has the same deadlock
+# potential as _run_encode used to. The GUI now just calls the regular
+# encode path and shows a static 'Rendering... please wait' label;
+# when the subprocess returns, the label flips to 'Done' or 'Failed'.
+# The Popen streaming code is gone entirely - the GUI and the CLI now
+# share the same subprocess.run-based path.
