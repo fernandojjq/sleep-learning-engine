@@ -1624,7 +1624,7 @@ wheels = [
 
 [[package]]
 name = "sleep-learning-engine"
-version = "1.0.7"
+version = "1.0.8"
 source = { editable = "." }
 dependencies = [
     { name = "customtkinter" },
