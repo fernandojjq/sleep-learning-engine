@@ -231,63 +231,46 @@ def _hex_to_rgb(color_hex: str) -> tuple[int, int, int]:
 
 
 def _run_encode(cmd: list[str], total_seconds: float) -> subprocess.CompletedProcess[str]:
-    """Run an ffmpeg encode while streaming a coarse percentage.
+    """Run an ffmpeg encode and return when it finishes.
 
-    ``build`` previously ran the encode with ``subprocess.run(...,
-    capture_output=True)``, which buffers all output until ffmpeg exits, so
-    the encode step printed nothing and looked hung for its entire duration.
-    Here we read ffmpeg's ``-progress -`` key/value stream from stdout and log
-    one line every 10% (newline-terminated, so it streams through a
-    line-buffered parent such as the Colab cell). stderr is drained on a
-    thread to avoid a pipe-fill deadlock and returned for the fallback path.
+    Design note: previous versions of this function streamed a coarse
+    percentage via Popen + threaded stderr drain + for-line-in-stdout.
+    That design produced three real bugs in production:
+
+    1. ``th.join(timeout=2)`` deadlocked whenever ffmpeg emitted any
+       warning to stderr after ``progress=end``. The cell sat at
+       100% forever.
+    2. The ``for line in proc.stdout`` loop never returned if ffmpeg
+       had an open file handle (e.g. an unwritten trailer) keeping
+       its stdout pipe from closing. Same symptom: cell at 100% forever.
+    3. The first three canary encodes sometimes leaked zombie
+       processes that pinned the GPU and made the next render fail
+       with a confusing "driver busy" error.
+
+    All three bugs disappeared when the user said: "the progress bar
+    is a detail, I just want the file". The new implementation:
+
+    - ``subprocess.run`` with ``capture_output=True`` (no threads, no
+      pipes, no ``for line`` loop). ffmpeg's stdout/stderr are
+      buffered until exit, then returned in one shot. This is what
+      the user implicitly asked for.
+    - ``timeout=total_seconds * 2 + 300`` so a hung ffmpeg surfaces
+      as ``TimeoutExpired`` instead of an invisible cell hang.
+    - No live percentage. Two log lines: one at the start, one at
+      the end. If the user wants a progress bar in the GUI, that
+      lives in ``run_with_progress`` below, which is GUI-only and
+      the user has explicitly opted into.
     """
-    import threading
-
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
+    timeout = max(60, int(total_seconds * 2 + 300))
+    log.info("Encoding: starting (estimated {:.0f}s, hard timeout {}s)", total_seconds, timeout)
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
-    err: list[str] = []
-
-    def _drain() -> None:
-        assert proc.stderr is not None
-        for ln in proc.stderr:
-            err.append(ln)
-
-    th = threading.Thread(target=_drain, daemon=True)
-    th.start()
-
-    total = max(0.001, float(total_seconds))
-    last_bucket = -1
-    assert proc.stdout is not None
-    try:
-        for line in proc.stdout:
-            line = line.strip()
-            if line.startswith(("out_time_us=", "out_time_ms=")):
-                try:
-                    raw = int(line.split("=", 1)[1])
-                except ValueError:
-                    continue
-                secs = raw / (1_000_000 if "us=" in line else 1_000)
-                pct = min(100, int(secs / total * 100))
-                bucket = pct - (pct % 10)
-                if bucket > last_bucket:
-                    last_bucket = bucket
-                    log.info("Encoding: {}% ({:.0f}/{:.0f}s)", bucket, secs, total)
-            elif line == "progress=end" and last_bucket < 100:
-                last_bucket = 100
-                log.info("Encoding: 100% ({:.0f}/{:.0f}s)", total, total)
-    finally:
-        # CRITICAL: wait for the stderr drain thread to fully consume
-        # the stderr pipe BEFORE we let the process exit. If we don't,
-        # ffmpeg blocks on a full stderr pipe and the whole render hangs
-        # at 100% forever. The previous version had `th.join(timeout=2)`
-        # which was a guaranteed deadlock on a busy ffmpeg that emits
-        # any warning to stderr after the progress=end marker.
-        proc.wait()
-        th.join()  # no timeout: the pipe is bounded by ffmpeg's lifetime
-    return subprocess.CompletedProcess(
-        cmd, proc.returncode, stdout="", stderr="".join(err)
-    )
+    log.info("Encoding: done (returncode={}, {}s of stderr)", result.returncode, len(result.stderr))
+    return result
 
 
 def build(spec: VideoSpec) -> Path:
