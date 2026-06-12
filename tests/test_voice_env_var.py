@@ -333,10 +333,11 @@ def test_resolve_paths_ambient_falls_back_to_bundled(tmp_path, monkeypatch):
     # The fallback should point at the package's bundled dir.
     assert "sleep_learning_engine" in str(paths.ambient_dir)
     assert paths.ambient_dir.name == "ambient"
-    # The bundled dir should have all 97 mp3s.
+    # The bundled dir should have all 96 normalized mp3s.
+    # (Snowbound+2.mp3 was removed in v1.0.7 — see commit message.)
     mp3s = list(paths.ambient_dir.glob("*.mp3"))
-    assert len(mp3s) == 97, (
-        f"Expected 97 bundled ambient tracks, found {len(mp3s)}. "
+    assert len(mp3s) == 96, (
+        f"Expected 96 bundled ambient tracks, found {len(mp3s)}. "
         f"The package_data in pyproject.toml is not including the "
         f"assets/ambient/*.mp3 glob, or the files are not in the "
         f"expected location."
