@@ -27,6 +27,7 @@ local media server. Zero platform lock-in, runs free or fully local.
 - **Dynamic runtime.** The final video length is the sum of every rendered
   paragraph plus the silent pause you specify between paragraphs. No more
   cutting narration to fit a clock.
+- **Robust multi-hour rendering.** Engineered for long-form sleep content (3+ hours). The pipeline automatically fragments paragraphs at sentence boundaries, runs a download queue with automatic retries and exponential backoff for Edge-TTS, and executes integrity checks to ensure no audio segment is truncated.
 - **Smart visual pipeline.** Drop a background image or a short loopable
   video into the field. The studio loops the clip to match the runtime.
   If nothing is provided, a dark, sleep-friendly backdrop is generated
