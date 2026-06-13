@@ -156,6 +156,7 @@ def _progress_filter(
     width: int,
     height: int,
     frame_count: float,
+    fps: float,
 ) -> str:
     """Return the filter graph to draw a stylish progress bar in the bottom-left corner.
 
@@ -167,14 +168,14 @@ def _progress_filter(
     x_start = 50
     y_top = height - 80
 
-    fps = 24
     duration = max(1.0, frame_count / fps)
 
     # Use a dynamic scale filter (eval=frame) and overlay to draw the moving progress bar
     # at high speed, avoiding the slow CPU-bound geq or static drawbox evaluation.
+    # We specify :r={fps} on the color source to synchronize frame rates and keep progress in sync.
     return (
         f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill[bg];"
-        f"color=c=green:s={bar_width}x{bar_height}[bar];"
+        f"color=c=green:s={bar_width}x{bar_height}:r={fps}[bar];"
         f"[bar]scale=w='max(t/{duration:.3f}*{bar_width},1)':h={bar_height}:eval=frame[scaled_bar];"
         f"[bg][scaled_bar]overlay=x={x_start}:y={y_top}:shortest=1"
     )
@@ -247,7 +248,7 @@ def build(spec: VideoSpec) -> Path:
         bg_vf = _video_filter(width, height, duration)
 
     # Draw the green progress bar overlay in the bottom-left corner
-    progress_vf = _progress_filter(width, height, spec.timing.frame_count)
+    progress_vf = _progress_filter(width, height, spec.timing.frame_count, spec.timing.fps)
 
     hw = pick_hardware(spec.hardware_accel, spec.ffmpeg_bin)
     cmd: list[str] = [
@@ -331,11 +332,12 @@ def _resolve_dimensions(spec: VideoSpec) -> tuple[int, int]:
 def _image_filter(width: int, height: int, duration: float) -> str:
     """Filter for a still image stretched to fill the target dimensions."""
     return (
-        f"loop=loop=-1:size=1:start=0,"
-        f"trim=duration={duration:.3f},"
         f"scale={width}:{height}:force_original_aspect_ratio=increase,"
         f"crop={width}:{height},"
-        f"setsar=1,fps=24"
+        f"setsar=1,"
+        f"loop=loop=-1:size=1:start=0,"
+        f"trim=duration={duration:.3f},"
+        f"fps=24"
     )
 
 
