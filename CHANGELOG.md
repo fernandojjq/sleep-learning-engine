@@ -5,6 +5,11 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.11 (2026-06-12)
+
+### Added
+- **Stylish Progress Bar Overlay**: Re-implemented the green progress bar overlay `#00FF00` in [builder.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/video/builder.py) with an updated design. Instead of crossing the entire screen at the bottom (which is covered by YouTube's playback controls), the bar is now a shorter 300px wide, 6px high strip positioned discreetly in the bottom-left corner and raised 80px above the bottom.
+
 ## 1.0.10 (2026-06-12)
 
 ### Fixed

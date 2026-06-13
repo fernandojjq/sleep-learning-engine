@@ -151,14 +151,37 @@ def pick_hardware(choice: str, ffmpeg_bin: Path) -> HardwareChoice:
     return libx264
 
 
-# ------------------------------------------------------------- progress bar (removed)
-# The previous version painted a green time-synced bar over the video
-# using geq on a 1x6 strip overlaid on the background. The user asked
-# us to drop it ("the progress bar is a detail, I just want the file")
-# so the build pipeline no longer has to do the strip composition, the
-# overlay, and the 30x speedup dance that came with it. The video
-# output is now identical to the background, which is what the user
-# wanted.
+# ------------------------------------------------------------- progress bar
+def _progress_filter(
+    width: int,
+    height: int,
+    frame_count: float,
+) -> str:
+    """Return the filter graph to draw a stylish progress bar in the bottom-left corner.
+
+    The bar is 300px wide, 6px high, positioned 50px from the left and 80px above
+    the bottom to avoid the YouTube playback control overlay.
+    """
+    bar_width = 300
+    bar_height = 6
+    x_start = 50
+    y_top = height - 80
+    y_bot = y_top + bar_height
+
+    n = max(1, int(frame_count))
+    # Green color (#00FF00)
+    r, g, b = 0, 255, 0
+
+    # We use format=rgb24 because the geq filter requires it.
+    # We draw a semi-transparent black track first, then paint the green fill
+    # using geq where X fits inside the progress fraction.
+    return (
+        f"format=rgb24,"
+        f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill,"
+        f"geq=r='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{r}\\,r(X\\,Y))':"
+        f"g='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{g}\\,g(X\\,Y))':"
+        f"b='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{b}\\,b(X\\,Y))'"
+    )
 
 
 # ------------------------------------------------------------- main builder
@@ -221,13 +244,14 @@ def build(spec: VideoSpec) -> Path:
     width, height = _resolve_dimensions(spec)
     duration = spec.timing.total_seconds
 
-    # Simple video filter: scale the background to the preset dimensions.
-    # The user's content is just a still image (or looping video) over the
-    # audio track. No compositing, no overlay, no progress strip.
+    # Scale the background to the preset dimensions.
     if spec.visual_kind == "image":
         bg_vf = _image_filter(width, height, duration)
     else:
         bg_vf = _video_filter(width, height, duration)
+
+    # Draw the green progress bar overlay in the bottom-left corner
+    progress_vf = _progress_filter(width, height, spec.timing.frame_count)
 
     hw = pick_hardware(spec.hardware_accel, spec.ffmpeg_bin)
     cmd: list[str] = [
@@ -244,7 +268,7 @@ def build(spec: VideoSpec) -> Path:
 
     cmd += [
         "-filter_complex",
-        f"[0:v]{bg_vf},format=yuv420p[v]",
+        f"[0:v]{bg_vf},{progress_vf},format=yuv420p[v]",
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", hw.encoder,
