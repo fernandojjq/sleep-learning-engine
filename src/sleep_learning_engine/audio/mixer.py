@@ -184,7 +184,13 @@ def build_ambient_playlist(
     for t in pool:
         if t.path in durations:
             continue
-        durations[t.path] = t.duration_seconds
+        try:
+            d = probe_duration(t.path, None)
+            if d <= 0.0:
+                d = t.duration_seconds
+            durations[t.path] = d
+        except Exception:
+            durations[t.path] = t.duration_seconds
 
     playlist: list[Path] = []
     accumulated = 0.0

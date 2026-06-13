@@ -5,6 +5,13 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.13 (2026-06-13)
+
+### Fixed
+- **Fixed Silent Voice Truncation**: Restored the highly robust `-c:a copy` (stream copy) audio concatenation inside [tts.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/audio/tts.py). Re-encoding MP3 segments with `libmp3lame` and `aresample` inside the concat demuxer caused timestamp resets and silent truncation on long segments (such as the 2h 20m cutoff). Stream copy preserves the original audio timelines perfectly.
+- **Fixed Moving Progress Bar Overlay**: Replaced the static `drawbox` parameter implementation in [builder.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/video/builder.py) with a dynamic `scale=eval=frame` and `overlay` filter graph. This ensures the green progress bar actually animates and moves over time `t` rather than remaining static.
+- **Improved Playlist Duration Probing**: Updated [mixer.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/audio/mixer.py) to lazily probe the actual duration of each ambient track using `probe_duration` (falling back to file size/assumed 60s) rather than hardcoding all durations to 60.0s.
+
 ## 1.0.12 (2026-06-12)
 
 ### Fixed

@@ -170,10 +170,13 @@ def _progress_filter(
     fps = 24
     duration = max(1.0, frame_count / fps)
 
-    # Use native fast drawbox filters. The second drawbox has a dynamic width parameter.
+    # Use a dynamic scale filter (eval=frame) and overlay to draw the moving progress bar
+    # at high speed, avoiding the slow CPU-bound geq or static drawbox evaluation.
     return (
-        f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill,"
-        f"drawbox=x={x_start}:y={y_top}:w='{bar_width}*t/{duration:.3f}':h={bar_height}:color=green:t=fill"
+        f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill[bg];"
+        f"color=c=green:s={bar_width}x{bar_height}[bar];"
+        f"[bar]scale=w='max(t/{duration:.3f}*{bar_width},1)':h={bar_height}:eval=frame[scaled_bar];"
+        f"[bg][scaled_bar]overlay=x={x_start}:y={y_top}:shortest=1"
     )
 
 

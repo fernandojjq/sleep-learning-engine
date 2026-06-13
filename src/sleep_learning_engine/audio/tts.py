@@ -216,14 +216,8 @@ class TTSEngine:
             "0",
             "-i",
             str(concat_file),
-            "-af",
-            "aresample=async=1:first_pts=0",
             "-c:a",
-            "libmp3lame",
-            "-b:a",
-            "48k",
-            "-write_xing",
-            "1",
+            "copy",
             str(target),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
