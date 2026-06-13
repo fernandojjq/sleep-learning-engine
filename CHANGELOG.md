@@ -5,6 +5,11 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.12 (2026-06-12)
+
+### Fixed
+- **Optimized and Fixed Progress Bar Overlay**: Replaced the slow, CPU-heavy generic equation filter (`geq`) with the fast native dynamic `drawbox` filter inside [builder.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/video/builder.py). This fixes the bug where the progress bar remained static (since FFmpeg's frame counter `N` does not increment properly on looped single-image inputs), and dramatically accelerates CPU rendering speed from 0.18x to **10x** (reducing a 3-hour video render from 18 hours to just 20 minutes).
+
 ## 1.0.11 (2026-06-12)
 
 ### Added

@@ -166,21 +166,14 @@ def _progress_filter(
     bar_height = 6
     x_start = 50
     y_top = height - 80
-    y_bot = y_top + bar_height
 
-    n = max(1, int(frame_count))
-    # Green color (#00FF00)
-    r, g, b = 0, 255, 0
+    fps = 24
+    duration = max(1.0, frame_count / fps)
 
-    # We use format=rgb24 because the geq filter requires it.
-    # We draw a semi-transparent black track first, then paint the green fill
-    # using geq where X fits inside the progress fraction.
+    # Use native fast drawbox filters. The second drawbox has a dynamic width parameter.
     return (
-        f"format=rgb24,"
         f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill,"
-        f"geq=r='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{r}\\,r(X\\,Y))':"
-        f"g='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{g}\\,g(X\\,Y))':"
-        f"b='if(between(Y\\,{y_top}\\,{y_bot}) * between(X\\,{x_start}\\,{x_start}+{bar_width}*N/{n})\\,{b}\\,b(X\\,Y))'"
+        f"drawbox=x={x_start}:y={y_top}:w='{bar_width}*t/{duration:.3f}':h={bar_height}:color=green:t=fill"
     )
 
 
