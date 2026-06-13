@@ -321,7 +321,7 @@ def mix_bed_and_voice(spec: MixSpec) -> Path:
         playlist_path = spec.output_path.with_suffix(".ambient.txt")
         _write_concat_playlist(list(spec.ambient_paths), playlist_path)
         ambient_input = [
-            "-f", "concat", "-safe", "0", "-stream_loop", "-1",
+            "-f", "concat", "-safe", "0",
             "-i", str(playlist_path),
         ]
         bed_label_in = "[1:a]"

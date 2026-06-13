@@ -5,6 +5,11 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.10 (2026-06-12)
+
+### Fixed
+- **Fixed Multi-Track Ambient Mix Truncation**: Removed the redundant and buggy `-stream_loop -1` parameter from the ffmpeg `concat` demuxer options in [mixer.py](file:///D:/proyectos/Proyectos%20Github/sleeplens/src/sleep_learning_engine/audio/mixer.py). Since the playlist is already fully calculated in Python to exceed the target video length, loop instruction was unnecessary and caused ffmpeg to experience timestamp overflow and silently truncate the mixed audio at the 2-hour mark (minute 129).
+
 ## 1.0.9 (2026-06-12)
 
 ### Fixed
