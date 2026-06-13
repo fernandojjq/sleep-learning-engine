@@ -13,7 +13,7 @@ from ..utils.logging import get_logger
 
 log = get_logger()
 
-IMAGE_SUFFIXES: frozenset[str] = frozenset({".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"})
+IMAGE_SUFFIXES: frozenset[str] = frozenset({".png", ".jpg", ".jpeg", ".jfif", ".bmp", ".webp", ".tif", ".tiff"})
 VIDEO_SUFFIXES: frozenset[str] = frozenset({".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"})
 
 
