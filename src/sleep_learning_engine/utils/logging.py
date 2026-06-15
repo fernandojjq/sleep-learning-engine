@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -12,7 +11,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..config.paths import ProjectPaths
 
 
-def configure_logging(paths: "ProjectPaths", level: str = "INFO") -> None:
+def configure_logging(paths: ProjectPaths, level: str = "INFO") -> None:
     """Configure the global loguru logger.
 
     Logs are written to ``<project>/logs/sleep_learning_engine.log`` and mirrored to the

@@ -20,8 +20,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
@@ -234,7 +232,7 @@ def test_resolve_paths_no_toml_does_not_crash(tmp_path, monkeypatch):
 
 def test_unique_output_never_overwrites(tmp_path, monkeypatch):
     """paths.unique_output returns -1.mp4, -2.mp4, etc. for repeat stems."""
-    from sleep_learning_engine.config import ProjectPaths, resolve_paths
+    from sleep_learning_engine.config import resolve_paths
 
     monkeypatch.setenv("SLEEP_LEARNING_ENGINE_HOME", str(tmp_path))
     monkeypatch.delenv("SLEEPLENS_HOME", raising=False)
@@ -259,9 +257,9 @@ def test_unique_output_never_overwrites(tmp_path, monkeypatch):
 
 def test_cell5_glob_picks_newest_by_mtime(tmp_path):
     """Mirror the cell 5 logic: glob '<stem>*.mp4' + sort by mtime desc."""
+    import glob
     import os
     import time
-    import glob
 
     out = tmp_path / "output"
     out.mkdir()
@@ -381,6 +379,7 @@ def _capture_filter_graph(duck_db):
     import subprocess
     import tempfile
     from pathlib import Path
+
     from sleep_learning_engine.audio import mixer
     from sleep_learning_engine.audio.mixer import MixSpec
 

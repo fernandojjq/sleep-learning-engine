@@ -37,9 +37,11 @@ local media server. Zero platform lock-in, runs free or fully local.
   alpha, lofi, fire, brown noise, ...) and ducks the bed whenever
   the voice is active. A bundled generator script can synthesise 14
   procedural tracks locally if you do not have any.
-- **Frame-accurate progress bar.** A clean #00FF00 bar painted with the
-  `geq` filter, advanced by the current frame number. No drift, no
-  precomputation, works on multi-hour renders.
+- **Premium music player card & progress bar.** A stylish, translucent music player card is overlayed in the bottom-left corner containing:
+  - Customizable channel avatar/logo (via the `progress_bar_avatar` config setting, CLI option, or GUI).
+  - Auto-wrapping title (caps to 2 lines with ellipsis truncation).
+  - Sleek dark progress track with a matching vibrant green progress bar.
+  - Symmetrical timer labels displaying elapsed time (dynamically computed by FFmpeg) and total duration in consistent `HH:MM:SS` format.
 - **Dark, modern GUI.** CustomTkinter with a midnight palette, drag-and-drop
   asset slots, provider dropdown, real-time stage log, and a cancel
   button you can actually click.
@@ -317,9 +319,10 @@ pre-rendered track.
 Sleep Learning Engine ships a small CLI for headless rendering on a server.
 
 ```bash
-# Render from a topic.
+# Render from a topic with a custom background image and progress bar channel logo.
 python run.py render --topic "the history of the steam engine" \
     --background-image ./assets/visuals/rainy-window.png \
+    --progress-bar-avatar ./assets/visuals/my-channel-logo.png \
     --output-stem steam-engine-30m --json
 
 # Render from a pre-written script.

@@ -43,6 +43,14 @@ voice_volume = 1.0
 # Output. "sleep_720p" or "sleep_1080p" (or "audio_only" for a WAV).
 output_preset = "sleep_720p"
 
+# Visuals.
+# background_image: Path to the full-screen background image (PNG, JPG, WEBP).
+# background_video: Path to a looping background video clip (MP4, MKV, MOV).
+# progress_bar_avatar: Path to the channel logo/avatar image (PNG, JPG) to overlay on the progress player card.
+background_image = ""
+background_video = ""
+progress_bar_avatar = ""
+
 # Progress bar. Hex color in 6-digit form.
 progress_bar_color = "#00FF00"
 progress_bar_height = 6

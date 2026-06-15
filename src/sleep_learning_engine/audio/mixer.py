@@ -207,24 +207,6 @@ def build_ambient_playlist(
                 break
         cycle += 1
     return playlist
-    if mode is AmbientMode.DISABLED:
-        return None
-    if mode is AmbientMode.RANDOM:
-        import random
-
-        return random.choice(tracks_list)
-
-    script_set = {kw.lower() for kw in script_keywords if kw}
-
-    def score(track: AmbientTrack) -> int:
-        if not script_set:
-            return 1 if track.keywords else 0
-        return sum(1 for kw in track.keywords if kw in script_set)
-
-    matches = sorted(tracks_list, key=score, reverse=True)
-    if mode is AmbientMode.KEYWORD and score(matches[0]) == 0:
-        return None
-    return matches[0]
 
 
 def extract_script_keywords(text: str, limit: int = 12) -> list[str]:

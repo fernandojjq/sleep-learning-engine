@@ -17,7 +17,6 @@ from sleep_learning_engine.ai.connector import AIConnector, ChatMessage  # noqa:
 from sleep_learning_engine.core.exceptions import ProviderError  # noqa: E402
 from sleep_learning_engine.core.retry import call_with_backoff  # noqa: E402
 
-
 # ----------------------------------------------------- connector basics
 
 

@@ -6,6 +6,7 @@ import os
 import sys
 import tomllib
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -166,6 +167,7 @@ class AppSettings:
     # Visual
     background_image: str = ""
     background_video: str = ""
+    progress_bar_avatar: str = ""
     video_fps: int = 24
     video_width: int = 1280
     video_height: int = 720
@@ -211,6 +213,7 @@ def load_settings(path: Path) -> AppSettings:
                 f"Using defaults. Copy {example.name} to {path.name} "
                 f"and edit your values to persist your settings.",
                 file=sys.stderr,
+                flush=True,
             )
         settings = AppSettings()
     else:
@@ -251,7 +254,7 @@ def load_settings(path: Path) -> AppSettings:
 
 def save_settings(path: Path, settings: AppSettings) -> None:
     """Persist the current settings as TOML."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     payload: dict[str, Any] = {
         "provider_id": settings.provider_id,
@@ -274,6 +277,7 @@ def save_settings(path: Path, settings: AppSettings) -> None:
         "language": settings.language,
         "background_image": settings.background_image,
         "background_video": settings.background_video,
+        "progress_bar_avatar": settings.progress_bar_avatar,
         "video_fps": settings.video_fps,
         "video_width": settings.video_width,
         "video_height": settings.video_height,
@@ -287,7 +291,7 @@ def save_settings(path: Path, settings: AppSettings) -> None:
         "render_threads": settings.render_threads,
         "theme": settings.theme,
         "last_output_stem": settings.last_output_stem,
-        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "saved_at": datetime.now(UTC).isoformat(),
     }
     payload.update(settings.extra)
 

@@ -10,19 +10,18 @@ from pathlib import Path
 import customtkinter as ctk
 
 from ..config import (
-    AIProvider,
+    PROVIDER_PRESETS,
     AmbientMode,
     AppSettings,
     OutputPreset,
-    PROVIDER_PRESETS,
     ProjectPaths,
     TTSBackend,
     load_settings,
     save_settings,
 )
 from ..core import SleeplensError, run_render
-from ..core.state import RenderEvent, RenderStage, RenderStatus
 from ..core.pipeline import build_connector
+from ..core.state import RenderEvent
 from ..utils.logging import configure_logging, get_logger
 
 log = get_logger()
@@ -586,7 +585,6 @@ class StudioApp(ctk.CTk):
 
         # Model row: a dropdown of curated common models for the current
         # provider, plus a "Custom..." text field for anything else.
-        model_row = 99  # placeholder; we'll lay this out explicitly below
         ctk.CTkLabel(parent, text="Model", text_color=PALETTE["muted"]).grid(
             row=4, column=0, padx=20, pady=(12, 0), sticky="w"
         )
@@ -751,6 +749,25 @@ class StudioApp(ctk.CTk):
             vid_row, text="Browse…", width=96, command=lambda: self._browse_file(self.bg_video_var, "video")
         ).grid(row=0, column=2, padx=(8, 0))
 
+        avatar_row = ctk.CTkFrame(parent, fg_color="transparent")
+        avatar_row.grid(row=3, column=0, padx=20, pady=4, sticky="ew")
+        avatar_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(avatar_row, text="Bar Avatar", text_color=PALETTE["muted"], width=90).grid(
+            row=0, column=0, padx=8, sticky="w"
+        )
+        self.progress_bar_avatar_var = tk.StringVar()
+        ctk.CTkEntry(
+            avatar_row,
+            textvariable=self.progress_bar_avatar_var,
+            fg_color=PALETTE["panel_alt"],
+            text_color=PALETTE["text"],
+            border_color=PALETTE["border"],
+            placeholder_text="path/to/avatar.png (optional, logo search fallback)",
+        ).grid(row=0, column=1, sticky="ew")
+        ctk.CTkButton(
+            avatar_row, text="Browse…", width=96, command=lambda: self._browse_file(self.progress_bar_avatar_var, "image")
+        ).grid(row=0, column=2, padx=(8, 0))
+
         note = ctk.CTkLabel(
             parent,
             text=(
@@ -762,10 +779,10 @@ class StudioApp(ctk.CTk):
             justify="left",
             wraplength=720,
         )
-        note.grid(row=3, column=0, padx=20, pady=12, sticky="w")
+        note.grid(row=4, column=0, padx=20, pady=12, sticky="w")
 
         ctk.CTkLabel(parent, text="Drop files here", text_color=PALETTE["muted"]).grid(
-            row=4, column=0, padx=20, pady=(20, 0), sticky="w"
+            row=5, column=0, padx=20, pady=(20, 0), sticky="w"
         )
         drop_zone = ctk.CTkFrame(
             parent,
@@ -775,7 +792,7 @@ class StudioApp(ctk.CTk):
             corner_radius=12,
             height=140,
         )
-        drop_zone.grid(row=5, column=0, padx=20, pady=8, sticky="nsew")
+        drop_zone.grid(row=6, column=0, padx=20, pady=8, sticky="nsew")
         drop_zone.grid_propagate(False)
         ctk.CTkLabel(
             drop_zone,
@@ -790,7 +807,7 @@ class StudioApp(ctk.CTk):
 
     def _enable_dnd(self, frame: ctk.CTkFrame) -> None:
         try:
-            from tkinterdnd2 import DND_FILES, TkinterDnD  # type: ignore[import-not-found]
+            from tkinterdnd2 import DND_FILES  # type: ignore[import-not-found]
         except ImportError:
             return
         try:
@@ -803,8 +820,6 @@ class StudioApp(ctk.CTk):
 
     def _on_drop(self, event) -> None:
         try:
-            from tkinterdnd2 import TkinterDnD  # type: ignore[import-not-found]
-
             data = event.data
             if isinstance(data, str):
                 path_str = data.strip("{}")
@@ -1115,6 +1130,7 @@ class StudioApp(ctk.CTk):
         self.script_path_var.set(s.script_file)
         self.bg_image_var.set(s.background_image)
         self.bg_video_var.set(s.background_video)
+        self.progress_bar_avatar_var.set(s.progress_bar_avatar)
         self.wordcount_var.set(str(s.target_word_count))
         self.pause_var.set(str(s.pause_between_paragraphs))
         self.language_var.set(s.language)
@@ -1170,6 +1186,7 @@ class StudioApp(ctk.CTk):
         s.script_file = self.script_path_var.get().strip()
         s.background_image = self.bg_image_var.get().strip()
         s.background_video = self.bg_video_var.get().strip()
+        s.progress_bar_avatar = self.progress_bar_avatar_var.get().strip()
         s.language = self.language_var.get().strip() or "en"
         s.tts_backend = TTSBackend(self.tts_backend_var.get())
         # Voice: dropdown value maps to voice id, Custom... uses the text field.
@@ -1461,7 +1478,6 @@ class StudioApp(ctk.CTk):
 
     def _run_script_only_job(self, settings: AppSettings) -> None:
         """Background worker: talk to the provider, save the script, surface errors."""
-        from ..ai.connector import AIConnector
         from ..ai.script_writer import ScriptWriter
         from ..core import ProviderError, SleeplensError
 
@@ -1473,7 +1489,7 @@ class StudioApp(ctk.CTk):
         # CustomTkinter widgets must only be touched from the main
         # thread.
         import queue
-        chunk_q: "queue.Queue[str | None]" = queue.Queue()
+        chunk_q: queue.Queue[str | None] = queue.Queue()
 
         def push_chunk(delta: str) -> None:
             chunk_q.put(delta)

@@ -28,11 +28,11 @@ from ..audio.mixer import (
 )
 from ..audio.tts import TTSEngine, TTSResult
 from ..config import (
+    PROVIDER_PRESETS,
     AIProvider,
     AmbientMode,
     AppSettings,
     OutputPreset,
-    PROVIDER_PRESETS,
     ProjectPaths,
     TTSBackend,
 )
@@ -263,6 +263,7 @@ def run_render(
         hardware_accel=settings.hardware_accel,
         render_threads=settings.render_threads,
         preset=settings.output_preset,
+        progress_bar_avatar=settings.progress_bar_avatar,
     )
     build(video_spec)
     emit(RenderStage.ENCODE, f"Output: {output_path}", path=str(output_path))

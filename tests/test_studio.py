@@ -22,11 +22,15 @@ if str(SRC) not in sys.path:
 
 from sleep_learning_engine.audio import mixer  # noqa: E402
 from sleep_learning_engine.audio.tts import TTSSegment  # noqa: E402
-from sleep_learning_engine.config import AmbientMode, AppSettings, OutputPreset, TTSBackend  # noqa: E402
+from sleep_learning_engine.config import (  # noqa: E402
+    AmbientMode,
+    AppSettings,
+    OutputPreset,
+    TTSBackend,
+)
 from sleep_learning_engine.core import run_render  # noqa: E402
 from sleep_learning_engine.video.timing import compute_timing  # noqa: E402
 from sleep_learning_engine.visual.assets import generate_fallback  # noqa: E402
-
 
 # ----------------------------------------------------------------- timing
 
@@ -187,8 +191,8 @@ def test_orchestrator_with_prewritten_script(tmp_path_factory: pytest.TempPathFa
 
     This exercises the timing engine, visual fallback, mixer, and encoder.
     """
-    from sleep_learning_engine.config import resolve_paths
     from sleep_learning_engine.audio import tts as tts_mod
+    from sleep_learning_engine.config import resolve_paths
 
     # pytest's default tmp_path lives on the C: drive on Windows; force the
     # workspace onto D: so we never touch the nearly-full C: partition.

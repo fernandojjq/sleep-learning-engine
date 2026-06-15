@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..config import ProjectPaths, TTSBackend
+from ..config import TTSBackend
 from ..core import DependencyMissingError, SleeplensError
 from ..utils.logging import get_logger
 
@@ -110,7 +110,7 @@ class TTSEngine:
             segments: list[TTSSegment] = []
             for i, text in enumerate(paragraphs):
                 audio_path = out_dir / f"seg-{i:04d}.mp3"
-                
+
                 # Retry logic for network drops or rate-limiting
                 max_retries = 5
                 retry_delay = 1.0
@@ -126,16 +126,16 @@ class TTSEngine:
                             pitch=self.pitch,
                         )
                         await comm.save(str(audio_path))
-                        
+
                         # Verify physical file size is sane
                         if not audio_path.exists() or audio_path.stat().st_size < 1000:
                             raise SleeplensError("File missing or too small (possible download truncation).")
-                        
+
                         # Verify duration can be read and is not near-zero
                         duration = _probe_duration(audio_path, self.ffmpeg_bin)
                         if duration <= 0.1:
                             raise SleeplensError("Zero or invalid audio duration detected.")
-                        
+
                         success = True
                         break
                     except Exception as e:
@@ -150,18 +150,18 @@ class TTSEngine:
                                 pass
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2  # Exponential backoff
-                
+
                 if not success:
                     raise SleeplensError(
                         f"edge-tts failed to produce a valid audio segment {i} after {max_retries} attempts."
                     )
-                
+
                 log.info("Rendered TTS segment {} ({:.1f}s)", i, duration)
                 segments.append(TTSSegment(index=i, text=text, audio_path=audio_path, duration=duration))
-                
+
                 # Tiny pause to avoid flooding the Microsoft Edge-TTS server
                 await asyncio.sleep(0.3)
-                
+
             return segments
 
         try:

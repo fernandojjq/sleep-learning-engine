@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import random
 import shutil
-from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 

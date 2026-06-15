@@ -5,6 +5,14 @@ All notable changes to Sleep Learning Engine are documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.0.14 (2026-06-15)
+
+### Added
+- **Customizable Progress Bar Avatar/Logo**: Added the `progress_bar_avatar` configuration setting and CLI option `--progress-bar-avatar` to allow choosing a custom avatar image (such as channel logo) for the premium translucent player card widget in the bottom-left corner of the video.
+- **Improved Configuration Separation**: Ensured that the background visual (`background_image`) and the player card avatar/logo (`progress_bar_avatar`) are fully distinct settings, avoiding any mix-up or swapping when generating the final video assets.
+- **GUI Integration for Avatar Selection**: Added a "Bar Avatar" input field and file browser button to the "Visuals" tab of the desktop studio to make avatar selection user-friendly.
+- **Avatar Fallback Handling**: Implemented a robust fallback mechanism that automatically falls back to searching for channel logos in Youtube directories or drawing a beautiful text placeholder (`SD`) if the specified avatar file does not exist, logging a warning rather than failing the render.
+
 ## 1.0.13 (2026-06-13)
 
 ### Fixed

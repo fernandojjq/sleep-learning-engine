@@ -14,8 +14,6 @@ the current PTS, which keeps it perfectly in sync with the timeline.
 
 from __future__ import annotations
 
-import json
-import re
 import shlex
 import subprocess
 from dataclasses import dataclass
@@ -42,6 +40,7 @@ class VideoSpec:
     hardware_accel: str = "auto"  # "auto" | "nvenc" | "qsv" | "amf" | "libx264"
     render_threads: int = 0
     preset: OutputPreset = OutputPreset.SLEEP_720P
+    progress_bar_avatar: str = ""
 
 
 @dataclass(frozen=True)
@@ -173,8 +172,10 @@ def _progress_filter(
     # Use a dynamic scale filter (eval=frame) and overlay to draw the moving progress bar
     # at high speed, avoiding the slow CPU-bound geq or static drawbox evaluation.
     # We specify :r={fps} on the color source to synchronize frame rates and keep progress in sync.
+    # We add a 1px grey border around the black background track to make its limits visible.
     return (
-        f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill[bg];"
+        f"drawbox=x={x_start}:y={y_top}:w={bar_width}:h={bar_height}:color=black@0.55:t=fill,"
+        f"drawbox=x={x_start-1}:y={y_top-1}:w={bar_width+2}:h={bar_height+2}:color=gray@0.40:t=1[bg];"
         f"color=c=green:s={bar_width}x{bar_height}:r={fps}[bar];"
         f"[bar]scale=w='max(t/{duration:.3f}*{bar_width},1)':h={bar_height}:eval=frame[scaled_bar];"
         f"[bg][scaled_bar]overlay=x={x_start}:y={y_top}:shortest=1"
@@ -228,6 +229,218 @@ def _run_encode(cmd: list[str], total_seconds: float) -> subprocess.CompletedPro
     return result
 
 
+def _find_avatar_logo() -> Path | None:
+    """Find the channel's avatar logo in the standard YouTube assets directories."""
+    possible_paths = [
+        Path(r"D:\Youtube\sleepingdevfer34\Sleeping Dev\logo_sleeping_dev.jpeg"),
+        Path(r"D:\Youtube\sleepingdevfer34\Geopolitical sandbox\logo.png"),
+        Path(r"D:\Youtube\sleepingdevfer34\Sleeping scientists\personalizacion\Logo.png"),
+    ]
+    for p in possible_paths:
+        if p.exists():
+            return p
+    return None
+
+
+def _draw_wrapped_text(draw, text, font, max_width, start_x, start_y, line_spacing=4):
+    """Draw text with word wrapping, truncating to 2 lines max with ellipsis if necessary."""
+    words = text.split(" ")
+    lines = []
+    current_line = []
+
+    for word in words:
+        test_line = " ".join(current_line + [word])
+        # Get width of test line
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        w = bbox[2] - bbox[0]
+        if w <= max_width:
+            current_line.append(word)
+        else:
+            if current_line:
+                lines.append(" ".join(current_line))
+                current_line = [word]
+            else:
+                lines.append(word)
+                current_line = []
+    if current_line:
+        lines.append(" ".join(current_line))
+
+    # Truncate to 2 lines and add ellipsis if needed
+    if len(lines) > 2:
+        second_line = lines[1]
+        while len(second_line) > 3 and draw.textbbox((0, 0), second_line + "...", font=font)[2] - draw.textbbox((0, 0), second_line + "...", font=font)[0] > max_width:
+            words_in_second = second_line.split(" ")
+            if len(words_in_second) > 1:
+                second_line = " ".join(words_in_second[:-1])
+            else:
+                second_line = second_line[:-1]
+        lines = [lines[0], second_line + "..."]
+
+    y = start_y
+    for line in lines:
+        draw.text((start_x, y), line, font=font, fill=(255, 255, 255, 255))
+        bbox = draw.textbbox((0, 0), line, font=font)
+        h = bbox[3] - bbox[1]
+        y += h + line_spacing
+    return y
+
+
+def _generate_player_card(
+    card_path: Path,
+    bar_path: Path,
+    title_text: str,
+    duration_seconds: float,
+    avatar_path: str = "",
+):
+    """Generate a premium translucent music player card PNG (containing avatar, title,
+    progress track, and total duration) and a matching lime green progress bar PNG.
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont, ImageOps
+    except ImportError as exc:
+        raise DependencyMissingError("Pillow is required to generate player card images.") from exc
+
+    card_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Card dimensions
+    card_w, card_h = 750, 140
+
+    # 1. Base card image (translucent dark slate background with a subtle border)
+    card_img = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
+    card_draw = ImageDraw.Draw(card_img)
+    card_draw.rounded_rectangle(
+        [(0, 0), (card_w - 1, card_h - 1)],
+        radius=24,
+        fill=(15, 15, 20, 190),       # Translucent dark slate background
+        outline=(255, 255, 255, 35),  # Subtle light white/grey border
+        width=1
+    )
+
+    # 2. Load and overlay Avatar
+    avatar_w, avatar_h = 100, 100
+    avatar_x, avatar_y = 20, 20
+
+    logo_path = None
+    if avatar_path:
+        p = Path(avatar_path)
+        if p.exists():
+            logo_path = p
+        else:
+            log.warning("Specified progress bar avatar does not exist: {}. Falling back to default logo search.", avatar_path)
+            logo_path = _find_avatar_logo()
+    else:
+        logo_path = _find_avatar_logo()
+
+    if logo_path:
+        try:
+            avatar_img = Image.open(logo_path).convert("RGBA")
+            avatar_img = ImageOps.fit(avatar_img, (avatar_w, avatar_h), Image.Resampling.LANCZOS)
+
+            # Apply rounded corners to avatar
+            mask = Image.new("L", (avatar_w, avatar_h), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.rounded_rectangle([(0, 0), (avatar_w - 1, avatar_h - 1)], radius=16, fill=255)
+            avatar_img.putalpha(mask)
+
+            card_img.alpha_composite(avatar_img, (avatar_x, avatar_y))
+        except Exception as e:
+            log.warning("Failed to load/process avatar logo from {}: {}", logo_path, e)
+            logo_path = None
+
+    if not logo_path:
+        # Draw a beautiful placeholder avatar if no logo is found
+        avatar_draw_img = Image.new("RGBA", (avatar_w, avatar_h), (0, 0, 0, 0))
+        avatar_draw = ImageDraw.Draw(avatar_draw_img)
+        avatar_draw.rounded_rectangle(
+            [(0, 0), (avatar_w - 1, avatar_h - 1)],
+            radius=16,
+            fill=(30, 41, 59, 255),       # Slate-800
+            outline=(255, 255, 255, 50),
+            width=1
+        )
+        try:
+            ph_font = ImageFont.truetype("/Windows/Fonts/arialbd.ttf", 36)
+        except Exception:
+            ph_font = ImageFont.load_default()
+
+        ph_text = "SD"
+        bbox = avatar_draw.textbbox((0, 0), ph_text, font=ph_font)
+        tx = (avatar_w - (bbox[2] - bbox[0])) // 2
+        ty = (avatar_h - (bbox[3] - bbox[1])) // 2 - 2
+        avatar_draw.text((tx, ty), ph_text, font=ph_font, fill=(255, 255, 255, 200))
+        card_img.alpha_composite(avatar_draw_img, (avatar_x, avatar_y))
+
+    # 3. Load fonts
+    try:
+        font_title = ImageFont.truetype("/Windows/Fonts/arialbd.ttf", 20)
+        font_time = ImageFont.truetype("/Windows/Fonts/arial.ttf", 14)
+    except Exception:
+        font_title = ImageFont.load_default()
+        font_time = ImageFont.load_default()
+
+    # 4. Draw wrapped Title text
+    title_start_x = 140
+    title_start_y = 18
+    max_title_width = 590
+    _draw_wrapped_text(card_draw, title_text, font_title, max_title_width, title_start_x, title_start_y, line_spacing=4)
+
+    # 5. Draw Progress Track
+    track_x = 140
+    track_y = 82
+    track_w = 570
+    track_h = 10
+    card_draw.rounded_rectangle(
+        [(track_x, track_y), (track_x + track_w - 1, track_y + track_h - 1)],
+        radius=5,
+        fill=(30, 30, 38, 255),       # Dark slate track background
+        outline=(60, 60, 75, 255),    # Soft track border
+        width=1
+    )
+
+    # 6. Draw Total Duration text on the right side under the track
+    h_val, rem = divmod(int(duration_seconds), 3600)
+    m_val, s_val = divmod(rem, 60)
+    duration_str = f"{h_val:02d}:{m_val:02d}:{s_val:02d}"
+
+    bbox = card_draw.textbbox((0, 0), duration_str, font=font_time)
+    duration_w = bbox[2] - bbox[0]
+    duration_x = track_x + track_w - duration_w
+    duration_y = 104
+    card_draw.text((duration_x, duration_y), duration_str, font=font_time, fill=(255, 255, 255, 180))
+
+    # Save player card image
+    card_img.save(card_path, "PNG")
+
+    # 7. Generate matching progress bar image
+    bar_img = Image.new("RGBA", (track_w, track_h), (0, 0, 0, 0))
+    bar_draw = ImageDraw.Draw(bar_img)
+    bar_draw.rounded_rectangle(
+        [(0, 0), (track_w - 1, track_h - 1)],
+        radius=5,
+        fill=(118, 255, 3, 255),     # Vibrant Lime green `#76ff03`
+    )
+    bar_img.save(bar_path, "PNG")
+
+
+def _format_duration(seconds: float) -> str:
+    s = int(seconds)
+    h, rem = divmod(s, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h:02d}\\:{m:02d}\\:{s:02d}"
+    return f"{m:02d}\\:{s:02d}"
+
+
+def _escape_ffmpeg_text(text: str) -> str:
+    # Escape special characters for FFmpeg's drawtext filter
+    text = text.replace("\\", "\\\\")
+    text = text.replace(":", "\\:")
+    text = text.replace("'", "\\'")
+    text = text.replace("%", "\\%")
+    text = text.replace(",", "\\,")
+    return text
+
+
 def build(spec: VideoSpec) -> Path:
     """Render the final MP4 and return its path."""
     if not spec.ffmpeg_bin.exists():
@@ -247,8 +460,28 @@ def build(spec: VideoSpec) -> Path:
     else:
         bg_vf = _video_filter(width, height, duration)
 
-    # Draw the green progress bar overlay in the bottom-left corner
-    progress_vf = _progress_filter(width, height, spec.timing.frame_count, spec.timing.fps)
+    # Generate progress bar assets (rounded capsule styling)
+    cache_dir = Path("cache")
+    cache_dir.mkdir(exist_ok=True)
+    track_path = cache_dir / "player_card.png"
+    bar_path = cache_dir / "progress_bar.png"
+
+    title_text = spec.output_path.name.replace(spec.output_path.suffix, "")
+    _generate_player_card(track_path, bar_path, title_text, duration, spec.progress_bar_avatar)
+
+    # Dynamic positioning relative to output resolution
+    x_start = 80
+    y_top = height - 200  # 140px card height leaves 60px padding at the bottom of 1080p
+    time_x = x_start + 140
+    time_y = y_top + 104
+
+    filter_complex = (
+        f"[0:v]{bg_vf}[bg_base];"
+        f"[bg_base][2:v]overlay=x={x_start}:y={y_top}[bg_with_track];"
+        f"[3:v]scale=w='max(t/{duration:.3f}*570,10)':h=10:eval=frame[scaled_bar];"
+        f"[bg_with_track][scaled_bar]overlay=x={x_start+140}:y={y_top+82}:shortest=1[bg_with_bar];"
+        f"[bg_with_bar]drawtext=fontfile='/Windows/Fonts/arial.ttf':text='%{{pts\\:gmtime\\:0\\:%H\\\\\\:%M\\\\\\:%S}}':x={time_x}:y={time_y}:fontcolor=white@0.70:fontsize=14:shadowcolor=black@0.4:shadowx=1:shadowy=1,format=yuv420p[v]"
+    )
 
     hw = pick_hardware(spec.hardware_accel, spec.ffmpeg_bin)
     cmd: list[str] = [
@@ -260,12 +493,16 @@ def build(spec: VideoSpec) -> Path:
     ]
     if spec.render_threads > 0:
         cmd += ["-threads", str(spec.render_threads)]
+    if spec.visual_kind == "video":
+        cmd += ["-stream_loop", "-1"]
     cmd += ["-i", str(spec.visual_path)]
     cmd += ["-i", str(spec.mixed_audio_path)]
+    cmd += ["-loop", "1", "-i", str(track_path)]
+    cmd += ["-loop", "1", "-i", str(bar_path)]
 
     cmd += [
         "-filter_complex",
-        f"[0:v]{bg_vf},{progress_vf},format=yuv420p[v]",
+        filter_complex,
         "-map", "[v]",
         "-map", "1:a",
         "-c:v", hw.encoder,
@@ -344,7 +581,6 @@ def _image_filter(width: int, height: int, duration: float) -> str:
 def _video_filter(width: int, height: int, duration: float) -> str:
     """Filter for a looping video background that fills the target dimensions."""
     return (
-        f"loop=loop=-1:size=1:start=0,"
         f"trim=duration={duration:.3f},"
         f"scale={width}:{height}:force_original_aspect_ratio=increase,"
         f"crop={width}:{height},"

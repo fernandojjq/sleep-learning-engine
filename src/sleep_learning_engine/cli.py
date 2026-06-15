@@ -5,13 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
-from .config import load_settings, resolve_paths, save_settings
+from .config import load_settings, resolve_paths
 from .core import SleeplensError, run_render
-from .utils.logging import configure_logging, get_logger
 from .core.state import RenderEvent
+from .utils.logging import configure_logging, get_logger
 
 log = get_logger()
 
@@ -59,6 +59,7 @@ def _build_parser() -> argparse.ArgumentParser:
     render.add_argument("--script", help="Path to a script file (overrides settings.script_file).")
     render.add_argument("--background-image", help="Background image path.")
     render.add_argument("--background-video", help="Background video path.")
+    render.add_argument("--progress-bar-avatar", help="Path to progress bar avatar image.")
     render.add_argument("--output-stem", help="Filename stem for the rendered MP4.")
     render.add_argument("--json", action="store_true", help="Emit a JSON summary to stdout.")
     render.set_defaults(func=_cmd_render)
@@ -162,6 +163,8 @@ def _cmd_render(args: argparse.Namespace) -> int:
         settings.background_image = args.background_image
     if args.background_video:
         settings.background_video = args.background_video
+    if args.progress_bar_avatar:
+        settings.progress_bar_avatar = args.progress_bar_avatar
     if args.output_stem:
         settings.last_output_stem = args.output_stem
 

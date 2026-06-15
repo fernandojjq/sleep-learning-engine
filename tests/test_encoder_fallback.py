@@ -20,7 +20,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from sleep_learning_engine.video import builder  # noqa: E402
-from sleep_learning_engine.video.builder import HardwareChoice, pick_hardware  # noqa: E402
+from sleep_learning_engine.video.builder import pick_hardware  # noqa: E402
 
 
 class _FakeCompleted:
